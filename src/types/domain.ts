@@ -93,6 +93,25 @@ export type GroupTotals = {
   strengthCount: number;
 };
 
+/**
+ * 관리자 활동 기록의 동작.
+ * DB 쪽은 CHECK 제약이라 생성 타입이 string 으로 나온다. 여기서 좁혀 쓴다.
+ */
+export const ADMIN_ACTIONS = [
+  "login",
+  "import_people",
+  "exclude_feedback",
+  "restore_feedback",
+  "add_admin",
+  "remove_admin",
+] as const;
+
+export type AdminAction = (typeof ADMIN_ACTIONS)[number];
+
+export function isAdminAction(value: unknown): value is AdminAction {
+  return typeof value === "string" && ADMIN_ACTIONS.some((a) => a === value);
+}
+
 /** 제출 폼이 서버로 보내는 항목 */
 export type FeedbackItemInput = {
   code: StrengthCode;

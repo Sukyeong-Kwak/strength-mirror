@@ -702,6 +702,44 @@ create policy audit_insert_admin on public.admin_audit_log
 
 
 -- ------------------------------------------------------------
+-- 8-1. 마지막 관리자 보호
+--
+-- 앱에서만 막으면 두 가지로 뚫린다.
+--   1) 두 관리자가 동시에 서로를 지우면 둘 다 "아직 2명" 을 보고 통과한다
+--   2) 관리자는 자기 브라우저의 토큰으로 PostgREST 에 직접 DELETE 를 날릴 수 있다
+-- 아무도 못 들어가는 상태가 되면 service_role 키를 쓰지 않는 이 앱은
+-- 스스로 복구할 수 없으므로, 규칙을 DB 에 둔다.
+--
+-- 문(statement) 단위 after 트리거를 쓴다. 행 단위 before 트리거는 같은 문에서
+-- 지워지는 다른 행을 아직 못 보기 때문에 `delete ... where email <> 'x'` 한 방에 뚫린다.
+-- ------------------------------------------------------------
+
+create or replace function public.prevent_last_admin_delete()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  -- 동시에 들어온 삭제를 줄 세운다. 없으면 서로 상대의 삭제를 못 보고 둘 다 통과한다
+  perform pg_advisory_xact_lock(918273645);
+
+  if (select count(*) from public.admin_allowlist) < 1 then
+    raise exception '마지막 관리자는 제거할 수 없어요'
+      using errcode = '23514';
+  end if;
+
+  return null;
+end;
+$$;
+
+drop trigger if exists admin_allowlist_keep_one on public.admin_allowlist;
+create trigger admin_allowlist_keep_one
+  after delete on public.admin_allowlist
+  for each statement execute function public.prevent_last_admin_delete();
+
+
+-- ------------------------------------------------------------
 -- 9. RPC
 -- ------------------------------------------------------------
 
