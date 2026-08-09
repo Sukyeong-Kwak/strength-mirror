@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+@theme {
+  /* 덕목 6색 — 이 앱의 유일한 색 체계 (6-2). 별도 브랜드 컬러를 만들지 말 것 */
+  --color-virtue-wisdom: #1f6f6b;
+  --color-virtue-courage: #bf4a36;
+  --color-virtue-humanity: #c0567f;
+  --color-virtue-justice: #2e4a87;
+  --color-virtue-temperance: #5e7c4f;
+  --color-virtue-transcendence: #7a5aa8;
+
+  /* 중립색 */
+  --color-page: #fbfaf8;
+  --color-surface: #ffffff;
+  --color-ink: #1a1a18;
+  --color-muted: #6e6e68;
+  --color-line: #e4e2dc;
+  /* 경고 — 관리자 화면의 미달 표시 전용. 덕목 색과 겹치지 않게 */
+  --color-warn: #8a6d1f;
+  --color-warn-surface: #fdf6e3;
+
+  /* 형태 — 모서리 반경 6px 고정 (6-4) */
+  --radius-base: 6px;
+
+  /* 서체 두 벌 (6-3) */
+  --font-sans: var(--font-pretendard), system-ui, sans-serif;
+  --font-display: var(--font-gowun-batang), serif;
+}
+
+/* 폰트 로딩 전에도 레이아웃이 흔들리지 않게 */
+html {
+  background-color: var(--color-page);
+}
+
+body {
+  background-color: var(--color-page);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+/* 퍼센트 숫자는 폭이 흔들리면 안 된다 (6-3) */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
