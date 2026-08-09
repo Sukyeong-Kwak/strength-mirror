@@ -328,25 +328,44 @@ select
   public.results_unlocked() as unlocked,
   public.results_remaining() as remaining;
 
--- 개인 · 강점별 비율
+-- 개인 · 강점별 비율.
+-- 덕목 뷰와 마찬가지로 최대잔여법을 써서 합계를 정확히 100 으로 맞춘다.
+-- 각자 반올림하면 합이 96~108 사이로 흩어져 덕목별 보기의 소계가 어긋나 보인다
 create view public.person_strength_ratio as
 with base as (
-  select person_id, strength_code from public.feedback_items_active
+  select person_id, strength_code, count(*)::numeric as c
+  from public.feedback_items_active
+  group by person_id, strength_code
 ),
 tot as (
-  select person_id, count(*)::numeric as total from base group by person_id
+  select person_id, sum(c) as total from base group by person_id
+),
+frac as (
+  select
+    b.person_id,
+    b.strength_code,
+    floor(100.0 * b.c / t.total)::int                      as base_ratio,
+    100.0 * b.c / t.total - floor(100.0 * b.c / t.total)   as rem
+  from base b join tot t on t.person_id = b.person_id
+),
+ranked as (
+  select
+    person_id,
+    strength_code,
+    base_ratio,
+    row_number() over (partition by person_id order by rem desc, strength_code) as rn,
+    100 - sum(base_ratio) over (partition by person_id)                         as leftover
+  from frac
 )
 select
-  b.person_id,
-  b.strength_code,
+  r.person_id,
+  r.strength_code,
   s.name_ko,
   s.virtue,
-  round(100.0 * count(*) / t.total)::int as ratio
-from base b
-join tot t         on t.person_id = b.person_id
-join public.strengths s on s.code = b.strength_code
-where public.results_unlocked()
-group by b.person_id, b.strength_code, s.name_ko, s.virtue, t.total;
+  r.base_ratio + case when r.rn <= r.leftover then 1 else 0 end as ratio
+from ranked r
+join public.strengths s on s.code = r.strength_code
+where public.results_unlocked();
 
 -- 개인 · 덕목별 비율. 최대잔여법으로 합계를 정확히 100 으로 맞춘다
 create view public.person_virtue_ratio as
@@ -388,21 +407,36 @@ where public.results_unlocked();
 -- 전체 · 강점별 비율
 create view public.overall_strength_ratio as
 with base as (
-  select strength_code from public.feedback_items_active
+  select strength_code, count(*)::numeric as c
+  from public.feedback_items_active
+  group by strength_code
 ),
 tot as (
-  select count(*)::numeric as total from base
+  select sum(c) as total from base
+),
+frac as (
+  select
+    b.strength_code,
+    floor(100.0 * b.c / t.total)::int                      as base_ratio,
+    100.0 * b.c / t.total - floor(100.0 * b.c / t.total)   as rem
+  from base b cross join tot t
+),
+ranked as (
+  select
+    strength_code,
+    base_ratio,
+    row_number() over (order by rem desc, strength_code) as rn,
+    100 - sum(base_ratio) over ()                        as leftover
+  from frac
 )
 select
-  b.strength_code,
+  r.strength_code,
   s.name_ko,
   s.virtue,
-  round(100.0 * count(*) / t.total)::int as ratio
-from base b
-cross join tot t
-join public.strengths s on s.code = b.strength_code
-where public.results_unlocked()
-group by b.strength_code, s.name_ko, s.virtue, t.total;
+  r.base_ratio + case when r.rn <= r.leftover then 1 else 0 end as ratio
+from ranked r
+join public.strengths s on s.code = r.strength_code
+where public.results_unlocked();
 
 -- 전체 · 덕목별 비율
 create view public.overall_virtue_ratio as
@@ -441,22 +475,39 @@ where public.results_unlocked();
 -- 조 · 강점별 비율
 create view public.group_strength_ratio as
 with base as (
-  select group_name, strength_code from public.feedback_items_active
+  select group_name, strength_code, count(*)::numeric as c
+  from public.feedback_items_active
+  group by group_name, strength_code
 ),
 tot as (
-  select group_name, count(*)::numeric as total from base group by group_name
+  select group_name, sum(c) as total from base group by group_name
+),
+frac as (
+  select
+    b.group_name,
+    b.strength_code,
+    floor(100.0 * b.c / t.total)::int                      as base_ratio,
+    100.0 * b.c / t.total - floor(100.0 * b.c / t.total)   as rem
+  from base b join tot t on t.group_name = b.group_name
+),
+ranked as (
+  select
+    group_name,
+    strength_code,
+    base_ratio,
+    row_number() over (partition by group_name order by rem desc, strength_code) as rn,
+    100 - sum(base_ratio) over (partition by group_name)                         as leftover
+  from frac
 )
 select
-  b.group_name,
-  b.strength_code,
+  r.group_name,
+  r.strength_code,
   s.name_ko,
   s.virtue,
-  round(100.0 * count(*) / t.total)::int as ratio
-from base b
-join tot t              on t.group_name = b.group_name
-join public.strengths s on s.code = b.strength_code
-where public.results_unlocked()
-group by b.group_name, b.strength_code, s.name_ko, s.virtue, t.total;
+  r.base_ratio + case when r.rn <= r.leftover then 1 else 0 end as ratio
+from ranked r
+join public.strengths s on s.code = r.strength_code
+where public.results_unlocked();
 
 -- 조 · 덕목별 비율
 create view public.group_virtue_ratio as
@@ -669,10 +720,12 @@ security definer
 set search_path = extensions, public
 as $$
 declare
-  v_pepper      text;
-  v_hash        text;
-  v_count       int;
-  v_feedback_id uuid;
+  v_pepper        text;
+  v_hash          text;
+  v_count         int;
+  v_distinct      int;
+  v_feedback_id   uuid;
+  v_existing_person uuid;
 begin
   if p_person_id is null or p_submission_key is null then
     raise exception 'person_id and submission_key are required';
@@ -686,17 +739,40 @@ begin
     raise exception 'items must be a json array';
   end if;
 
-  select count(*)::int into v_count from jsonb_array_elements(p_items);
+  -- 항목의 모양을 먼저 본다. 여기서 걸러야 제약 위반 코드 대신 읽을 수 있는 메시지가 나간다
+  if exists (
+    select 1
+    from jsonb_array_elements(p_items) as item
+    where jsonb_typeof(item) <> 'object'
+       or item ->> 'code' is null
+       or item ->> 'reason' is null
+  ) then
+    raise exception 'each item must be an object with code and reason';
+  end if;
+
+  select count(*)::int, count(distinct item ->> 'code')::int
+  into v_count, v_distinct
+  from jsonb_array_elements(p_items) as item;
+
   if v_count < 1 or v_count > 5 then
     raise exception 'items count must be between 1 and 5';
   end if;
 
+  -- 같은 강점을 두 번 넣으면 개수 검사를 통과해버리므로 따로 막는다
+  if v_distinct <> v_count then
+    raise exception 'items must not repeat the same strength';
+  end if;
+
   -- 멱등 처리를 먼저 한다. 이미 있으면 pepper 조회 없이 그대로 돌려준다
-  select id into v_feedback_id
+  select id, person_id into v_feedback_id, v_existing_person
   from public.feedbacks
   where submission_key = p_submission_key;
 
   if v_feedback_id is not null then
+    -- 같은 키를 다른 대상에게 재사용했다면 조용히 버리지 말고 알린다
+    if v_existing_person <> p_person_id then
+      raise exception 'submission_key already used for another person';
+    end if;
     return v_feedback_id;
   end if;
 
