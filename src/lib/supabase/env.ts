@@ -7,7 +7,10 @@
 
 function required(name: string, value: string | undefined): string {
   if (value === undefined || value === "") {
-    throw new Error(`환경변수 ${name} 가 비어 있어요. .env.local 을 확인하세요`);
+    throw new Error(
+      `환경변수 ${name} 가 비어 있어요. ` +
+        "로컬은 .env.local, 배포는 Vercel 의 Environment Variables 를 확인하세요",
+    );
   }
   return value;
 }
