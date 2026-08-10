@@ -86,6 +86,11 @@ export type PersonTotals = {
   createdBy: string | null;
   submissionCount: number;
   strengthCount: number;
+  /**
+   * 숨긴 사람인지.
+   * 숨기면 목록·집계·결과 공개 게이트에서 빠지지만 받은 글은 남는다.
+   */
+  hidden: boolean;
 };
 
 /** 관리자 조별 합계 한 행 */
@@ -106,6 +111,9 @@ export const ADMIN_ACTIONS = [
   "restore_feedback",
   "add_admin",
   "remove_admin",
+  "hide_person",
+  "restore_person",
+  "delete_person",
 ] as const;
 
 export type AdminAction = (typeof ADMIN_ACTIONS)[number];

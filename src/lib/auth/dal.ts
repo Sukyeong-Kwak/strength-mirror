@@ -55,6 +55,7 @@ type PersonTotalsRow = {
   name: string | null;
   group_name: string | null;
   created_by: string | null;
+  hidden_at: string | null;
   submission_count: number | null;
   strength_count: number | null;
 };
@@ -70,6 +71,7 @@ function toPersonTotals(row: PersonTotalsRow): PersonTotals | null {
     createdBy: row.created_by,
     submissionCount: row.submission_count ?? 0,
     strengthCount: row.strength_count ?? 0,
+    hidden: row.hidden_at !== null,
   };
 }
 
@@ -78,18 +80,27 @@ function toPersonTotals(row: PersonTotalsRow): PersonTotals | null {
  *
  * person_totals_internal 은 is_admin() 인 사용자에게만 열려 있다.
  * 정렬을 지정하지 않으면 행 순서가 매번 달라져 화면이 흔들린다.
+ *
+ * ⚠ 숨긴 사람도 함께 돌려준다 (`hidden`).
+ *   명단 관리 화면이 숨긴 사람을 보고 되돌려야 하기 때문이다.
+ *   현황·집계에 쓸 때는 부르는 쪽에서 걸러야 한다.
+ *   DB 의 결과 공개 게이트는 숨긴 사람을 빼고 세므로, 넣으면 화면과 어긋난다.
  */
 export async function getReceiptTotals(): Promise<PersonTotals[]> {
   await requireAdmin();
   const supabase = await createSupabaseServerClient();
 
+  // hidden_at 은 이번 스키마 변경으로 생겼다.
+  // types/database.ts 는 생성물이라, 스키마를 재실행하고 npm run gen:types 를
+  // 돌리기 전까지는 이 컬럼을 모른다. 그때가 되면 overrideTypes 를 지워도 된다
   const { data, error } = await supabase
     .from("person_totals_internal")
     .select(
-      "person_id, name, group_name, created_by, submission_count, strength_count",
+      "person_id, name, group_name, created_by, hidden_at, submission_count, strength_count",
     )
     .order("group_name", { ascending: true })
-    .order("name", { ascending: true });
+    .order("name", { ascending: true })
+    .overrideTypes<PersonTotalsRow[], { merge: false }>();
 
   // 빈 배열로 넘기면 "등록 인원 0명" 이라는 정반대 화면이 된다.
   // 조회 실패는 삼키지 않고 에러 바운더리로 보낸다

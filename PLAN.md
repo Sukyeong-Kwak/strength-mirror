@@ -55,6 +55,8 @@ npm run lint
 | 표제 서체 선택 | 간판체(도현체·한나체 등)를 쓰지 않는다 | 6-4 의 평면적인 종이 화면과 겉돈다. 굵기도 한 벌뿐이라 위계를 못 만든다 |
 | 표제 서체 적용 범위 | **h1 제목(600) + 사람·강점 이름(500).** 명세 6-3 을 넓혔다 | 이름에만 쓰니 존재감이 없어 화면 전체가 한 글꼴처럼 밋밋했다 |
 | h2 | 표제 서체를 쓰지 않는다 | 대부분 14px 섹션 라벨이라 씌우면 위계가 흐려진다 |
+| 명단에서 빼기 | **숨김과 삭제 둘 다.** 숨김이 기본 동선 | 삭제는 받은 글까지 cascade 로 지운다. 되돌릴 수 없어서 기본으로 권하지 않는다 |
+| 숨긴 사람과 게이트 | 결과 공개 게이트·집계·조별 합계에서 뺀다 | 안 그러면 숨긴 한 명이 결과를 영영 막는다 |
 | 서체 교체 지점 | **`src/lib/fonts.ts` 한 곳.** globals.css 는 변수만 본다 | 컴포넌트마다 적어두면 바꿀 때 빠뜨린다. `/fonts` 에서 후보를 눈으로 비교한다 |
 | 덕목 6색 | 흰 배경 기준으로 **계산해서** 뽑는다. 눈으로 고르지 않는다 | 이전 팔레트는 인간애↔용기 ΔE 9.4 로 정상 시력에서도 구분이 어려웠다 |
 | 글자용 덕목 색 | `-ink` 변형을 따로 둔다 | 막대 색을 글자에 쓰면 절제가 2.9:1 이라 읽히지 않는다 |
@@ -85,6 +87,7 @@ npm run lint
 | 4 | 관리자 인증 (OTP 전용) + 리뷰 반영 | 완료 |
 | 5 | 명단 파서 `parsePeople.ts` | 완료 (테스트 27) |
 | 6 | 명단 일괄 등록 화면 `/admin/people/import` | 완료 |
+| 6-1 | 명단 관리 `/admin/people` — 숨김·삭제 | 완료 |
 | 7 | 제출 이력 localStorage (`submitted.ts`) | 미착수 |
 | 8 | 홈 (조 필터·검색·사람 목록) | 미착수 |
 | 9 | 조 참여 흐름 (내 조, 진행 카드) | 미착수 |
@@ -114,6 +117,8 @@ npm run lint
 - **비율 뷰 6개의 5% 눈금** — 지금 DB 에 있는 뷰는 아직 1% 단위다
 - **기기 식별 제거** — `client_hash` 컬럼, `app_config`, `device_pepper()`,
   `get_my_submissions()` 를 걷어낸다
+- **숨김·삭제** — `people.hidden_at` 컬럼, 관리자 전용 update·delete 정책,
+  활동 기록에 `hide_person`·`restore_person`·`delete_person` 추가
 
 채워 넣을 값은 없다. 파일 전체를 붙여넣고 그대로 실행하면 된다.
 
@@ -176,8 +181,10 @@ npm run gen:types && npm run typecheck
 ### Supabase
 
 - [x] `supabase/schema.sql` 실행
-- [ ] **스키마 재실행 (필수)** — 트리거 + 5% 눈금 + 기기 식별 제거.
+- [ ] **스키마 재실행 (필수)** — 트리거 + 5% 눈금 + 기기 식별 제거 + 숨김/삭제.
       채워 넣을 값은 없다. 자세한 내용과 확인 쿼리는 4-1 참고
+- [ ] 재실행 뒤 `npm run gen:types` — `hidden_at` 이 생성 타입에 들어가야
+      `lib/auth/dal.ts` 의 `overrideTypes` 를 지울 수 있다
 - [ ] Authentication → Providers → **Email** 켜기, Google 은 끈 채로 둔다
 - [ ] Authentication → Providers → Email → **Confirm email** 켜져 있는지 확인
 - [ ] Authentication → **Secure email change** 켜져 있는지 확인

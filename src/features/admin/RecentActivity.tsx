@@ -18,21 +18,40 @@ const ACTION_LABEL: Record<AdminAction, string> = {
   restore_feedback: "제외 되돌림",
   add_admin: "관리자 추가",
   remove_admin: "관리자 제거",
+  hide_person: "명단에서 숨김",
+  restore_person: "숨김 되돌림",
+  delete_person: "명단에서 삭제",
 };
 
 /** detail 은 jsonb 라 무엇이든 올 수 있다. 좁혀서 쓴다 */
-function readCount(detail: AdminActivityDetail): number | null {
+function readField(detail: AdminActivityDetail, key: string): unknown {
   if (detail === null || typeof detail !== "object" || Array.isArray(detail)) {
-    return null;
+    return undefined;
   }
-  const value = detail["count"];
+  return detail[key];
+}
+
+function readCount(detail: AdminActivityDetail): number | null {
+  const value = readField(detail, "count");
   return typeof value === "number" ? value : null;
+}
+
+function readName(detail: AdminActivityDetail): string | null {
+  const value = readField(detail, "name");
+  return typeof value === "string" && value !== "" ? value : null;
 }
 
 function describe(entry: AdminActivity): string {
   const base = ACTION_LABEL[entry.action];
+
   const count = readCount(entry.detail);
-  return count === null ? base : `${count}명 ${base}`;
+  if (count !== null) {
+    return `${count}명 ${base}`;
+  }
+
+  // 사람을 숨기거나 지운 기록은 누구였는지가 핵심이다
+  const name = readName(entry.detail);
+  return name === null ? base : `${name} ${base}`;
 }
 
 /** 건수가 붙은 문구는 숫자 폭이 흔들리지 않게 한다 */

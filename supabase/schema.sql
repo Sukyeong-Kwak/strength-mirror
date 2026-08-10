@@ -56,8 +56,15 @@ create table if not exists public.people (
   name        text not null check (char_length(btrim(name)) between 1 and 40),
   group_name  text null check (group_name is null or char_length(btrim(group_name)) between 1 and 40),
   created_by  text null,
+  -- 관리자가 숨긴 시각. null 이면 참여 대상이다.
+  -- 잘못 등록했거나 빠진 사람을 목록·집계에서 빼되 받은 글은 지우지 않는다.
+  -- 숨긴 사람은 결과 공개 게이트에서도 빠진다. 안 그러면 한 명이 영영 막는다
+  hidden_at   timestamptz null,
   created_at  timestamptz not null default now()
 );
+
+-- 이미 만들어진 DB 에도 넣는다
+alter table public.people add column if not exists hidden_at timestamptz null;
 
 -- VIA 24개 마스터. 화면 문구의 원본은 src/lib/strengths.ts 이고
 -- 여기 description 은 참고용이다 (문구 수정에 마이그레이션이 필요 없도록)
@@ -108,10 +115,20 @@ create table if not exists public.admin_audit_log (
   id          bigserial primary key,
   admin_email text not null,
   action      text not null check (
-                action in ('login','import_people','exclude_feedback','restore_feedback','add_admin','remove_admin')
+                action in ('login','import_people','exclude_feedback','restore_feedback',
+                           'add_admin','remove_admin','hide_person','restore_person','delete_person')
               ),
   detail      jsonb null,
   created_at  timestamptz not null default now()
+);
+
+-- 이미 만들어진 DB 는 위 CHECK 이 적용되지 않는다 (create table if not exists).
+-- 동작을 추가할 때마다 제약을 갈아끼운다. 이름을 직접 지어 다시 찾을 수 있게 한다
+alter table public.admin_audit_log drop constraint if exists admin_audit_log_action_check;
+alter table public.admin_audit_log drop constraint if exists admin_audit_log_action_allowed;
+alter table public.admin_audit_log add constraint admin_audit_log_action_allowed check (
+  action in ('login','import_people','exclude_feedback','restore_feedback',
+             'add_admin','remove_admin','hide_person','restore_person','delete_person')
 );
 
 
@@ -198,6 +215,7 @@ as $$
       on f.person_id = p.id and f.excluded_at is null
     left join public.feedback_items i
       on i.feedback_id = f.id
+    where p.hidden_at is null
     group by p.id
   )
   select count(*) > 0 and count(*) filter (where strength_count >= 5) = count(*)
@@ -219,6 +237,7 @@ as $$
       on f.person_id = p.id and f.excluded_at is null
     left join public.feedback_items i
       on i.feedback_id = f.id
+    where p.hidden_at is null
     group by p.id
   )
   select count(*)::int from counts where strength_count < 5;
@@ -262,7 +281,8 @@ select
 from public.feedbacks f
 join public.people p         on p.id = f.person_id
 join public.feedback_items i on i.feedback_id = f.id
-where f.excluded_at is null;
+where f.excluded_at is null
+  and p.hidden_at is null;
 
 -- (관리자 전용) 수신 현황. 관리자는 누가 몇 개를 받았는지 모두 볼 수 있다
 create view public.person_totals_internal as
@@ -273,6 +293,8 @@ from (
     p.name,
     coalesce(p.group_name, '미지정')       as group_name,
     p.created_by,
+    -- 숨긴 사람도 돌려준다. 관리자가 보고 되돌릴 수 있어야 한다
+    p.hidden_at,
     count(distinct f.id)::int              as submission_count,
     count(i.id)::int                       as strength_count
   from public.people p
@@ -280,7 +302,7 @@ from (
     on f.person_id = p.id and f.excluded_at is null
   left join public.feedback_items i
     on i.feedback_id = f.id
-  group by p.id, p.name, p.group_name, p.created_by
+  group by p.id, p.name, p.group_name, p.created_by, p.hidden_at
 ) t
 where public.assert_admin();
 
@@ -297,6 +319,7 @@ from (
     on f.person_id = p.id and f.excluded_at is null
   left join public.feedback_items i
     on i.feedback_id = f.id
+  where p.hidden_at is null
   group by coalesce(p.group_name, '미지정')
 ) t
 where public.assert_admin();
@@ -633,6 +656,8 @@ alter table public.admin_audit_log enable row level security;
 
 drop policy if exists people_select_all        on public.people;
 drop policy if exists people_insert_admin      on public.people;
+drop policy if exists people_update_admin      on public.people;
+drop policy if exists people_delete_admin      on public.people;
 drop policy if exists strengths_select_all     on public.strengths;
 drop policy if exists feedbacks_select_admin   on public.feedbacks;
 drop policy if exists feedbacks_update_admin   on public.feedbacks;
@@ -653,6 +678,18 @@ create policy people_insert_admin on public.people
     public.is_admin()
     and (created_by is null or created_by = lower(auth.jwt() ->> 'email'))
   );
+
+-- 숨김·되돌리기. 이름과 조를 고치는 것도 관리자만 할 수 있다
+create policy people_update_admin on public.people
+  for update to authenticated
+  using (public.is_admin())
+  with check (public.is_admin());
+
+-- 삭제. 지우면 그 사람이 받은 제출과 사유도 cascade 로 함께 사라진다.
+-- 되돌릴 수 없으므로 화면에서 몇 개가 같이 지워지는지 보여준 뒤에 부른다
+create policy people_delete_admin on public.people
+  for delete to authenticated
+  using (public.is_admin());
 
 -- strengths : 읽기 전용 마스터
 create policy strengths_select_all on public.strengths
