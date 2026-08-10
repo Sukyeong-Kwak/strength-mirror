@@ -56,11 +56,15 @@ npm run lint
 | 테스트 | Vitest만 추가 (Testing Library 미사용) | 순수 함수만 테스트 |
 | 5-4 최다 수신자 표시 | **구현하지 않음** | "특정 인물이 몇 개 받았는지 알 수 없게" 원칙과 충돌 |
 | device pepper | DB 설정값(`current_setting`) 대신 `app_config` 테이블 + `device_pepper()` 접근자 | Supabase 의 postgres 롤은 슈퍼유저가 아니라 커스텀 GUC 를 못 만든다 |
-| 강점 비율 뷰 | 덕목 뷰와 같은 최대잔여법 (합계 정확히 100) | 각자 반올림하면 합이 96~108 로 흩어져 덕목별 보기 소계가 어긋난다 |
+| 비율 눈금 | **5% 단위.** 20칸 위에서 최대잔여법 | 1% 로 내려주면 건수를 역산할 수 있다 (8% = 12건 중 1건) |
+| 5% 눈금과 합계 | 각자 반올림하지 않는다. 20칸 최대잔여법으로 **합계 정확히 100** | 각자 반올림하면 합이 95~105 로 흩어져 덕목별 보기 소계가 어긋난다 |
+| 5% 미만 강점 | 막대 대신 이름만 "이런 강점도 받았어요" 로 | 누군가 골라준 강점이 화면에서 흔적도 없이 사라지지 않게 |
 | 사유 목록 게이트 | `feedback_reasons_public` 에도 공개 게이트 적용 | 사유 카드 수를 세면 그 사람이 받은 강점 수가 된다 |
 | 관리자 로그인 | **이메일 인증번호(OTP)만.** Google OAuth 는 쓰지 않는다 | 설정 단계를 줄인다 |
 | OTP 계정 생성 | `shouldCreateUser: false`. 계정은 Supabase 대시보드에서 미리 만든다 | 아무나 코드를 요청해 메일 할당량을 소진시키는 것을 막는다 |
 | 메일 발송 | Resend 커스텀 SMTP | Supabase 기본 SMTP 는 시간당 발송 제한이 매우 낮다 |
+| 관리자 권한 확인 | 레이아웃 게이트가 아니라 **DAL** (`lib/auth/dal.ts`) | 레이아웃은 그 아래 page 실행도 RSC 페이로드 노출도 막지 못한다 (Next 문서 명시) |
+| 에러 바운더리 prop | `reset` 이 아니라 **`retry`** | Next 16.3.0 에서 정식화됐다. `reset` 은 데이터를 다시 가져오지 않는다 |
 
 ---
 
@@ -69,81 +73,75 @@ npm run lint
 | 단계 | 내용 | 상태 |
 |---|---|---|
 | 1 | 셋업 (Next 16, TS strict, 덕목 색·서체) | 완료 |
-| 2 | DB 스키마 (테이블 7 · 뷰 11 · RPC 2 · RLS) | 완료 · **적용됨** |
+| 2 | DB 스키마 (테이블 7 · 뷰 11 · RPC 2 · RLS) | 완료 · **재실행 필요** (트리거 + 5% 눈금) |
 | 3 | 타입 생성 + Supabase 클라이언트 | 완료 |
-| 4 | 관리자 인증 | 코드 완료 · **리뷰 지적 미반영** · 로그인 방식 변경 필요 |
+| 4 | 관리자 인증 (OTP 전용) + 리뷰 반영 | 완료 |
 | 5 | 명단 파서 `parsePeople.ts` | 완료 (테스트 27) |
 | 6 | 명단 일괄 등록 화면 `/admin/people/import` | 미착수 |
 | 7 | 클라이언트 ID (`clientId.ts`, `get_my_submissions`) | 미착수 |
 | 8 | 홈 (조 필터·검색·사람 목록) | 미착수 |
 | 9 | 조 참여 흐름 (내 조, 진행 카드) | 미착수 |
 | 10 | 강점 등록 폼 (3단계 + 확인 다이얼로그) | 미착수 |
-| 11 | 차트 컴포넌트 (`RatioBar` 등) | `ratio.ts` + 테스트만 완료 |
+| 11 | 차트 컴포넌트 (`RatioBar` 등) | `ratio.ts` + 테스트만 완료 (5% 눈금 반영됨) |
 | 12 | 개인 결과 페이지 | 미착수 |
 | 13 | 전체 통계 페이지 | 미착수 |
 | 13-1 | 중복 점검 `/admin/duplicates` | 미착수 |
 | 14 | 모바일 QA → 태블릿 확장 | 미착수 |
 | 15 | README + Vercel 배포 | 미착수 |
 
-이미 만든 순수 함수 라이브러리: `groups.ts`(14) · `ratio.ts`(16) · `parsePeople.ts`(27) — 테스트 57개 통과.
+이미 만든 순수 함수 라이브러리: `groups.ts`(14) · `ratio.ts`(26) · `parsePeople.ts`(27) — 테스트 67개 통과.
 
 ---
 
 ## 4. 다음에 할 일 — 우선순위 순
 
-### 4-1. 로그인 방식을 OTP 전용으로 바꾸기 (먼저)
+4-1(로그인 OTP 전환) · 4-2(보안) · 4-3(정확성) 지적 34건은 **전부 반영했다.**
+커밋 `6a694a7` · `fcb1ff3` · 5% 눈금 커밋을 참고.
 
-- [ ] `src/features/admin/LoginPanel.tsx` — 구글 버튼 제거, OTP 를 주 동선으로. `shouldCreateUser: false`
-- [ ] 코드 요청 결과 메시지를 **성공·실패 모두 동일하게** 할 것. 다르면 "이 주소가 관리자인지" 알려주는 신호가 된다
-- [ ] `src/app/admin/auth/callback/route.ts` — OAuth 콜백 삭제. 대신 `/admin/auth/signout` 라우트를 만든다 (아래 참고)
-- [ ] `.env.example` 의 Google OAuth 안내 문단을 Resend SMTP 안내로 교체
-- [ ] Supabase 대시보드 작업 (5장 참고)
+남은 것은 화면이다. 명세의 구현 순서를 그대로 따른다.
 
-### 4-2. 보안 리뷰 지적 반영
+### 4-1. 스키마 재실행 (코드보다 먼저)
 
-- [x] 마지막 관리자 보호를 DB 트리거로 (`prevent_last_admin_delete`) — **스키마 재실행 필요**
-- [ ] 허용목록에 없는 계정을 **서버에서** 로그아웃시킬 것. 지금은 클라이언트가 무시하면 세션이 살아 있다
-      - `src/actions/admin/login.ts` — 거부 시 `supabase.auth.signOut()` 호출
-      - `/admin/auth/signout` 라우트 핸들러를 만들고, 관리자 페이지의 리다이렉트를 그쪽으로 보낸다
-- [ ] `removeAdmin` 이 삭제된 행 수를 확인하지 않는다. `.delete().eq().select()` 로 바꿀 것
-- [ ] `src/app/admin/` 을 라우트 그룹 `(protected)` 으로 옮기고 그 레이아웃에서 권한을 확인할 것.
-      지금은 페이지마다 손으로 확인하고 있어서 새 페이지를 추가할 때 빠뜨리기 쉽다
-- [ ] `src/app/page.tsx` — Postgres 오류 원문을 화면에 그대로 찍고 있다. 일반 문구로 교체
-- [ ] Supabase 대시보드에서 **Confirm email** 과 **Secure email change** 가 켜져 있는지 확인.
-      꺼져 있으면 이메일을 관리자 주소로 바꿔 권한을 가로챌 수 있다
+`supabase/schema.sql` 을 다시 실행해야 아래 두 가지가 반영된다.
 
-### 4-3. 정확성 리뷰 지적 반영
+- 마지막 관리자 보호 트리거 (`prevent_last_admin_delete`)
+- **비율 뷰 6개의 5% 눈금** — 지금 DB 에 있는 뷰는 아직 1% 단위다
 
-- [ ] **에러 바운더리가 하나도 없다.** `assertAdmin()` 이 던지면 관리자 화면 전체가 Next 기본 에러 페이지로 바뀐다
-      - `manageAdmins.ts` 가 throw 대신 `ActionResult` 를 돌려주도록
-      - `AdminAllowlist.tsx` 의 `startTransition` 안에 try/catch
-      - `src/app/error.tsx` 추가
-- [ ] Supabase 조회 오류를 삼키고 있다 (`?? []`). 특히 `/admin/settings` 는 조회 실패 시
-      빈 목록 + "마지막 관리자는 제거할 수 없어요" 라는 정반대 화면이 나온다
-- [ ] `font-display`(고운바탕)를 사람 이름·강점 이름에만 쓸 것.
-      지금 `AdminShell` 제목, 로그인 h1, 홈 h1 에 잘못 쓰였다
-- [ ] 터치 타겟 44px 미만 2곳 — `LoginPanel.tsx` 의 "이메일로 코드 받기", "주소 바꾸기"
-- [ ] `~습니다` 두 곳을 `~해요` 로 (`AdminAllowlist.tsx` 추가·제거 알림)
-- [ ] `AdminAllowlist.tsx` 의 상대 시간이 클라이언트 컴포넌트에서 계산돼 하이드레이션 불일치 위험.
-      서버에서 문자열로 만들어 넘길 것
-- [ ] `person_totals_internal` 조회에 `.order()` 가 없어 행 순서가 매번 바뀔 수 있다
-- [ ] `group_name` 이 빈 문자열일 때 `미지정` 으로 안 바뀐다. `toGroupLabel()` 을 쓸 것
-- [ ] 숫자에 `.num`(tabular figures) 누락 2곳
-- [ ] "돌아가기" 버튼이 실제로는 취소 동작이다. 라벨을 동작과 맞출 것
-- [ ] `ReceiptStatusTable` 빈 상태가 "결과 없음" 뿐. 다음 행동을 지시할 것
-- [ ] `src/middleware.ts` → `src/proxy.ts`, `export function proxy` (Next 16에서 이름 변경)
-- [ ] `text-white` → `text-surface` (선언한 토큰만 쓰기)
-- [ ] 입력 필드를 `<form>` 으로 감싸 Enter 로 제출되게
-- [ ] 표에 `min-w-max` 가 없어 `overflow-x-auto` 가 동작하지 않는다
-- [ ] 구현 용어가 문구에 노출 — "재배포 없이", "다음 요청부터"
-- [ ] `src/app/layout.tsx` metadata description 이 금지어(`함께`)와 `~습니다` 를 쓴다
-- [ ] `PersonTotals.createdBy` 를 아무 데도 안 쓴다. 수신 현황 표에 `등록: 수경` 열로 넣을 것
+실행 전에 `PASTE_DEVICE_ID_PEPPER_HERE` 를 실제 값으로 바꿀 것.
+이미 값이 있으면 덮어쓰지 않으므로 재실행은 안전하다.
+
+재실행 뒤 확인:
+
+```sql
+-- 전부 5의 배수여야 하고, 사람별 합이 정확히 100 이어야 한다
+select person_id, sum(ratio), bool_and(ratio % 5 = 0)
+from public.person_strength_ratio group by person_id;
+```
+
+> 게이트가 잠겨 있으면(5개 미만인 사람이 있으면) 행이 0개로 나온다. 정상이다.
+
+### 4-2. 6단계 — 명단 일괄 등록 `/admin/people/import`
+
+파서(`parsePeople.ts`)는 이미 있다. 화면과 Server Action 만 만들면 된다.
+조회·변경은 `lib/auth/dal.ts` 에 넣는다. 페이지에서 직접 Supabase 를 부르지 않는다.
+
+### 4-3. 7~15단계
+
+| 단계 | 내용 |
+|---|---|
+| 7 | 클라이언트 ID (`clientId.ts`, `get_my_submissions`) |
+| 8 | 홈 — 조 필터·검색·사람 목록 |
+| 9 | 조 참여 흐름 (내 조, 진행 카드) |
+| 10 | 강점 등록 폼 (3단계 + 확인 다이얼로그) |
+| 11 | 차트 컴포넌트 — `splitByVisibility()` 로 0% 는 이름만 |
+| 12 | 개인 결과 페이지 |
+| 13 | 전체 통계 · 13-1 중복 점검 |
+| 14 | 모바일 QA → 태블릿 |
+| 15 | README + Vercel 배포 |
+
+각 단계 끝에 리뷰 2회 → 커밋 → 푸시.
 
 > 부록 A 의 강점 설명문에 들어 있는 `함께` 는 **고치지 않는다.** 명세가 원문 그대로 쓰라고 못박았다.
-
-### 4-4. 그다음 단계 (6~15)
-
-명세의 구현 순서를 그대로 따른다. 각 단계 끝에 리뷰 2회 → 커밋 → 푸시.
 
 ---
 
@@ -152,9 +150,9 @@ npm run lint
 ### Supabase
 
 - [x] `supabase/schema.sql` 실행
-- [ ] **스키마 재실행** — 마지막 관리자 보호 트리거가 추가됐다.
+- [ ] **스키마 재실행** — 마지막 관리자 보호 트리거 + 비율 뷰 5% 눈금.
       실행 전에 `PASTE_DEVICE_ID_PEPPER_HERE` 를 실제 값으로 바꿀 것.
-      이미 값이 있으면 덮어쓰지 않으므로 재실행은 안전하다
+      이미 값이 있으면 덮어쓰지 않으므로 재실행은 안전하다 (4-1 참고)
 - [ ] Authentication → Providers → **Email** 켜기, Google 은 끈 채로 둔다
 - [ ] Authentication → Providers → Email → **Confirm email** 켜져 있는지 확인
 - [ ] Authentication → **Secure email change** 켜져 있는지 확인

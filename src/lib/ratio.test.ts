@@ -6,6 +6,7 @@ import {
   excludeZeroRatio,
   groupByVirtue,
   sortByRatioDesc,
+  splitByVisibility,
   sumRatio,
   toVirtueSegments,
 } from "./ratio";
@@ -69,6 +70,74 @@ describe("excludeZeroRatio", () => {
 
   it("빈 배열을 처리한다", () => {
     expect(excludeZeroRatio([])).toEqual([]);
+  });
+});
+
+describe("splitByVisibility", () => {
+  it("0% 는 막대에서 빼되 이름은 남긴다", () => {
+    const rows = [
+      ...SAMPLE,
+      row("humor", "유머", "transcendence", 0),
+      row("prudence", "신중함", "temperance", 0),
+    ];
+    const { charted, mentioned } = splitByVisibility(rows);
+
+    expect(charted).toHaveLength(SAMPLE.length);
+    expect(mentioned.map((r) => r.nameKo)).toEqual(["유머", "신중함"]);
+  });
+
+  it("막대는 비율 내림차순으로 나온다", () => {
+    const { charted } = splitByVisibility(SAMPLE);
+    expect(charted.map((r) => r.ratio)).toEqual([30, 25, 20, 10, 10, 5]);
+  });
+
+  it("언급 목록은 서버가 준 순서를 그대로 둔다", () => {
+    const { mentioned } = splitByVisibility([
+      row("humor", "유머", "transcendence", 0),
+      row("love", "사랑", "humanity", 0),
+    ]);
+    expect(mentioned.map((r) => r.strengthCode)).toEqual(["humor", "love"]);
+  });
+
+  it("전부 0이면 막대가 하나도 없다", () => {
+    const { charted, mentioned } = splitByVisibility([
+      row("humor", "유머", "transcendence", 0),
+    ]);
+    expect(charted).toEqual([]);
+    expect(mentioned).toHaveLength(1);
+  });
+
+  it("0이 없으면 언급 목록이 비어 있다", () => {
+    const { charted, mentioned } = splitByVisibility(SAMPLE);
+    expect(charted).toHaveLength(SAMPLE.length);
+    expect(mentioned).toEqual([]);
+  });
+
+  it("빈 배열을 처리한다", () => {
+    expect(splitByVisibility([])).toEqual({ charted: [], mentioned: [] });
+  });
+
+  it("원본을 바꾸지 않는다", () => {
+    const before = SAMPLE.map((r) => r.strengthCode);
+    splitByVisibility(SAMPLE);
+    expect(SAMPLE.map((r) => r.strengthCode)).toEqual(before);
+  });
+});
+
+describe("5% 눈금 — 서버가 내려주는 값의 성질", () => {
+  // DB 뷰가 20칸 최대잔여법으로 계산한다. 화면은 이 성질을 전제로 그린다
+  it("모든 비율이 5의 배수다", () => {
+    expect(SAMPLE.every((r) => r.ratio % 5 === 0)).toBe(true);
+  });
+
+  it("합이 정확히 100이다", () => {
+    expect(sumRatio(SAMPLE)).toBe(100);
+  });
+
+  it("덕목 소계도 5의 배수이고 합이 100이다", () => {
+    const groups = groupByVirtue(SAMPLE);
+    expect(groups.every((g) => g.subtotal % 5 === 0)).toBe(true);
+    expect(groups.reduce((total, g) => total + g.subtotal, 0)).toBe(100);
   });
 });
 

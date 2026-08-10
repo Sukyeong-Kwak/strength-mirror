@@ -328,9 +328,30 @@ select
   public.results_unlocked() as unlocked,
   public.results_remaining() as remaining;
 
--- 개인 · 강점별 비율.
--- 덕목 뷰와 마찬가지로 최대잔여법을 써서 합계를 정확히 100 으로 맞춘다.
--- 각자 반올림하면 합이 96~108 사이로 흩어져 덕목별 보기의 소계가 어긋나 보인다
+-- ------------------------------------------------------------
+-- 비율 눈금 — 5% 단위
+--
+-- 비율을 1% 단위로 내려주면 받은 건수를 역산할 수 있다.
+-- 8% 는 12건 중 1건, 4% 는 25건 중 1건으로 금세 좁혀진다.
+-- 그래서 5% 눈금(20칸) 위에 올려서 내보낸다.
+--
+-- 각자 가까운 5의 배수로 반올림하면 합계가 95~105 로 흩어져
+-- 덕목별 보기의 소계와 그 아래 막대들의 합이 어긋나 보인다.
+-- 그래서 100칸이 아니라 20칸 위에서 최대잔여법을 쓴다.
+-- 결과는 전부 5의 배수이면서 합이 정확히 100 이다.
+--
+--   20칸 중 몇 칸인지 내림 → 남은 칸을 소수부가 큰 순서로 하나씩 → ×5
+--
+-- ⚠ 눈금을 키워도 표본이 작으면 가려지지 않는다.
+--   5개를 받은 사람은 한 개가 정확히 20% 라서 "5개 중 1개" 가 그대로 드러난다.
+--   이건 눈금이 아니라 참여 인원으로 풀어야 하는 문제다.
+--
+-- 5% 에 못 미쳐 0% 가 된 강점도 행은 남긴다.
+-- 화면에서 막대 대신 이름만 모아 보여주기 위해서다.
+-- (아예 선택되지 않은 강점은 행 자체가 없다)
+-- ------------------------------------------------------------
+
+-- 개인 · 강점별 비율
 create view public.person_strength_ratio as
 with base as (
   select person_id, strength_code, count(*)::numeric as c
@@ -344,17 +365,17 @@ frac as (
   select
     b.person_id,
     b.strength_code,
-    floor(100.0 * b.c / t.total)::int                      as base_ratio,
-    100.0 * b.c / t.total - floor(100.0 * b.c / t.total)   as rem
+    floor(20.0 * b.c / t.total)::int                     as base_units,
+    20.0 * b.c / t.total - floor(20.0 * b.c / t.total)   as rem
   from base b join tot t on t.person_id = b.person_id
 ),
 ranked as (
   select
     person_id,
     strength_code,
-    base_ratio,
+    base_units,
     row_number() over (partition by person_id order by rem desc, strength_code) as rn,
-    100 - sum(base_ratio) over (partition by person_id)                         as leftover
+    20 - sum(base_units) over (partition by person_id)                          as leftover
   from frac
 )
 select
@@ -362,12 +383,12 @@ select
   r.strength_code,
   s.name_ko,
   s.virtue,
-  r.base_ratio + case when r.rn <= r.leftover then 1 else 0 end as ratio
+  (r.base_units + case when r.rn <= r.leftover then 1 else 0 end) * 5 as ratio
 from ranked r
 join public.strengths s on s.code = r.strength_code
 where public.results_unlocked();
 
--- 개인 · 덕목별 비율. 최대잔여법으로 합계를 정확히 100 으로 맞춘다
+-- 개인 · 덕목별 비율
 create view public.person_virtue_ratio as
 with base as (
   select a.person_id, s.virtue
@@ -384,23 +405,23 @@ frac as (
   select
     c.person_id,
     c.virtue,
-    floor(100.0 * c.c / t.total)::int         as base_ratio,
-    100.0 * c.c / t.total - floor(100.0 * c.c / t.total) as rem
+    floor(20.0 * c.c / t.total)::int                    as base_units,
+    20.0 * c.c / t.total - floor(20.0 * c.c / t.total)  as rem
   from cnt c join tot t on t.person_id = c.person_id
 ),
 ranked as (
   select
     person_id,
     virtue,
-    base_ratio,
+    base_units,
     row_number() over (partition by person_id order by rem desc, virtue) as rn,
-    100 - sum(base_ratio) over (partition by person_id)                  as leftover
+    20 - sum(base_units) over (partition by person_id)                   as leftover
   from frac
 )
 select
   person_id,
   virtue,
-  base_ratio + case when rn <= leftover then 1 else 0 end as ratio
+  (base_units + case when rn <= leftover then 1 else 0 end) * 5 as ratio
 from ranked
 where public.results_unlocked();
 
@@ -417,23 +438,23 @@ tot as (
 frac as (
   select
     b.strength_code,
-    floor(100.0 * b.c / t.total)::int                      as base_ratio,
-    100.0 * b.c / t.total - floor(100.0 * b.c / t.total)   as rem
+    floor(20.0 * b.c / t.total)::int                     as base_units,
+    20.0 * b.c / t.total - floor(20.0 * b.c / t.total)   as rem
   from base b cross join tot t
 ),
 ranked as (
   select
     strength_code,
-    base_ratio,
+    base_units,
     row_number() over (order by rem desc, strength_code) as rn,
-    100 - sum(base_ratio) over ()                        as leftover
+    20 - sum(base_units) over ()                         as leftover
   from frac
 )
 select
   r.strength_code,
   s.name_ko,
   s.virtue,
-  r.base_ratio + case when r.rn <= r.leftover then 1 else 0 end as ratio
+  (r.base_units + case when r.rn <= r.leftover then 1 else 0 end) * 5 as ratio
 from ranked r
 join public.strengths s on s.code = r.strength_code
 where public.results_unlocked();
@@ -454,21 +475,21 @@ tot as (
 frac as (
   select
     c.virtue,
-    floor(100.0 * c.c / t.total)::int         as base_ratio,
-    100.0 * c.c / t.total - floor(100.0 * c.c / t.total) as rem
+    floor(20.0 * c.c / t.total)::int                    as base_units,
+    20.0 * c.c / t.total - floor(20.0 * c.c / t.total)  as rem
   from cnt c cross join tot t
 ),
 ranked as (
   select
     virtue,
-    base_ratio,
+    base_units,
     row_number() over (order by rem desc, virtue) as rn,
-    100 - sum(base_ratio) over ()                as leftover
+    20 - sum(base_units) over ()                  as leftover
   from frac
 )
 select
   virtue,
-  base_ratio + case when rn <= leftover then 1 else 0 end as ratio
+  (base_units + case when rn <= leftover then 1 else 0 end) * 5 as ratio
 from ranked
 where public.results_unlocked();
 
@@ -486,17 +507,17 @@ frac as (
   select
     b.group_name,
     b.strength_code,
-    floor(100.0 * b.c / t.total)::int                      as base_ratio,
-    100.0 * b.c / t.total - floor(100.0 * b.c / t.total)   as rem
+    floor(20.0 * b.c / t.total)::int                     as base_units,
+    20.0 * b.c / t.total - floor(20.0 * b.c / t.total)   as rem
   from base b join tot t on t.group_name = b.group_name
 ),
 ranked as (
   select
     group_name,
     strength_code,
-    base_ratio,
+    base_units,
     row_number() over (partition by group_name order by rem desc, strength_code) as rn,
-    100 - sum(base_ratio) over (partition by group_name)                         as leftover
+    20 - sum(base_units) over (partition by group_name)                          as leftover
   from frac
 )
 select
@@ -504,7 +525,7 @@ select
   r.strength_code,
   s.name_ko,
   s.virtue,
-  r.base_ratio + case when r.rn <= r.leftover then 1 else 0 end as ratio
+  (r.base_units + case when r.rn <= r.leftover then 1 else 0 end) * 5 as ratio
 from ranked r
 join public.strengths s on s.code = r.strength_code
 where public.results_unlocked();
@@ -526,23 +547,23 @@ frac as (
   select
     c.group_name,
     c.virtue,
-    floor(100.0 * c.c / t.total)::int         as base_ratio,
-    100.0 * c.c / t.total - floor(100.0 * c.c / t.total) as rem
+    floor(20.0 * c.c / t.total)::int                    as base_units,
+    20.0 * c.c / t.total - floor(20.0 * c.c / t.total)  as rem
   from cnt c join tot t on t.group_name = c.group_name
 ),
 ranked as (
   select
     group_name,
     virtue,
-    base_ratio,
+    base_units,
     row_number() over (partition by group_name order by rem desc, virtue) as rn,
-    100 - sum(base_ratio) over (partition by group_name)                  as leftover
+    20 - sum(base_units) over (partition by group_name)                   as leftover
   from frac
 )
 select
   group_name,
   virtue,
-  base_ratio + case when rn <= leftover then 1 else 0 end as ratio
+  (base_units + case when rn <= leftover then 1 else 0 end) * 5 as ratio
 from ranked
 where public.results_unlocked();
 
