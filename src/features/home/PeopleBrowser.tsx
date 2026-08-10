@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { Button, Chip } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { collectGroupNames, toGroupLabel } from "@/lib/groups";
 import { filterByQuery } from "@/lib/search";
@@ -100,24 +101,15 @@ export function PeopleBrowser({ people }: PeopleBrowserProps) {
       {groups.length > 1 && (
         <div className="mt-3 -mx-4 overflow-x-auto px-4">
           <div className="flex w-max gap-2">
-            {[ALL_GROUPS, ...groups].map((name) => {
-              const active = name === group;
-              return (
-                <button
-                  key={name}
-                  type="button"
-                  onClick={() => chooseGroup(name)}
-                  aria-pressed={active}
-                  className={`min-h-11 shrink-0 rounded-base border px-4 text-sm ${
-                    active
-                      ? "border-ink bg-ink text-surface"
-                      : "border-line bg-surface text-ink"
-                  }`}
-                >
-                  {name}
-                </button>
-              );
-            })}
+            {[ALL_GROUPS, ...groups].map((name) => (
+              <Chip
+                key={name}
+                pressed={name === group}
+                onClick={() => chooseGroup(name)}
+              >
+                {name}
+              </Chip>
+            ))}
           </div>
         </div>
       )}
@@ -126,18 +118,19 @@ export function PeopleBrowser({ people }: PeopleBrowserProps) {
 
       {visible.length === 0 ? (
         <div className="mt-2">
-          <EmptyState
-            title={`'${query.trim()}' 로 찾은 사람이 없어요. 다른 글자로 찾아보세요`}
-            action={
-              <button
-                type="button"
-                onClick={() => setQuery("")}
-                className="min-h-11 px-2 text-sm text-muted underline underline-offset-4"
-              >
-                검색어 지우기
-              </button>
-            }
-          />
+          {/* 검색어 없이 빈 조를 열었을 때 검색 탓을 하면 안 된다 */}
+          {query.trim() === "" ? (
+            <EmptyState title={`'${group}' 에 아직 등록된 사람이 없어요`} />
+          ) : (
+            <EmptyState
+              title={`'${query.trim()}' 로 찾은 사람이 없어요. 다른 글자로 찾아보세요`}
+              action={
+                <Button variant="secondary" size="sm" onClick={() => setQuery("")}>
+                  검색어 지우기
+                </Button>
+              }
+            />
+          )}
         </div>
       ) : (
         <div className="mt-2 flex flex-col gap-6">

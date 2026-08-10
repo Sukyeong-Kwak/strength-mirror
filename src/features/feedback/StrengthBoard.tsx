@@ -21,7 +21,7 @@ import {
   submittedCodesFor,
 } from "@/lib/submitted";
 import { useSavedAuthorName, useSubmissions } from "@/lib/useLocalStore";
-import type { Person } from "@/types/domain";
+import type { ActionResult, Person } from "@/types/domain";
 
 type StrengthBoardProps = {
   person: Person;
@@ -93,13 +93,19 @@ export function StrengthBoard({ person }: StrengthBoardProps) {
     }
 
     startTransition(async () => {
+      // 통신이 끊기면 Server Action 이 예외를 그대로 던진다.
+      // 받지 않으면 오류 화면으로 튕겨 적던 글이 통째로 날아간다.
+      // 같은 멱등 키가 남아 있으니 그대로 다시 눌러도 두 번 저장되지 않는다
       const result = await submitFeedback({
         personId: person.id,
         submissionKey: key,
         strengthCode: strength.code,
         reason: trimmedReason,
         authorName: authorName.trim(),
-      });
+      }).catch((): ActionResult => ({
+        ok: false,
+        error: "연결이 끊겼어요. 잠시 뒤 다시 눌러주세요",
+      }));
 
       if (!result.ok) {
         setError(result.error);
