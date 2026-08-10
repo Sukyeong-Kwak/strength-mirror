@@ -183,6 +183,10 @@ npm run gen:types && npm run typecheck
 - [ ] Authentication → **Secure email change** 켜져 있는지 확인
 - [ ] Authentication → **Users → Add user** 로 관리자 계정을 미리 만든다
       (`shouldCreateUser: false` 이므로 계정이 없으면 코드를 받을 수 없다)
+      ⚠ `admin_allowlist` 에 이메일이 있는 것과 **별개다.** 둘 다 있어야 로그인된다
+- [ ] Authentication → Emails → Templates → **Magic Link** 에
+      `supabase/emails/otp-code.html` 붙여넣기 (제목: 강점 남기기 로그인 번호).
+      `{{ .Token }}` 이 있어야 6자리 번호가 나간다. 자세한 내용은 그 폴더의 README
 - [ ] Authentication → URL Configuration → Site URL 과 Redirect URLs
       (`http://localhost:3000/**`, 배포 후 Vercel 주소와 프리뷰 주소)
 
