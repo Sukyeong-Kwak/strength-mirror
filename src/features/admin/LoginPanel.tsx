@@ -47,14 +47,19 @@ export function LoginPanel({ next, initialError }: LoginPanelProps) {
     setError(null);
 
     const supabase = createSupabaseBrowserClient();
-    await supabase.auth.signInWithOtp({
-      email: trimmed,
-      // 계정은 대시보드에서 미리 만든다.
-      // 아무나 코드를 요청해 메일 할당량을 소진시키는 것을 막는다
-      options: { shouldCreateUser: false },
-    });
+    try {
+      await supabase.auth.signInWithOtp({
+        email: trimmed,
+        // 계정은 대시보드에서 미리 만든다.
+        // 아무나 코드를 요청해 메일 할당량을 소진시키는 것을 막는다
+        options: { shouldCreateUser: false },
+      });
+    } catch {
+      // 통신이 끊기면 supabase-js 가 예외를 그대로 던진다.
+      // 여기서 받지 않으면 busy 가 true 로 남아 버튼이 영영 잠긴다.
+      // 어차피 결과를 구분하지 않으므로 성공과 같은 화면으로 넘어간다
+    }
 
-    // 결과를 보지 않고 넘어간다. 위 주석 참고
     setBusy(false);
     setSentTo(trimmed);
     setStage("code");
@@ -71,28 +76,38 @@ export function LoginPanel({ next, initialError }: LoginPanelProps) {
     setError(null);
 
     const supabase = createSupabaseBrowserClient();
-    const { error: verifyError } = await supabase.auth.verifyOtp({
-      email: sentTo,
-      token: trimmedCode,
-      type: "email",
-    });
 
-    if (verifyError) {
-      setBusy(false);
-      setError("코드가 맞지 않아요. 다시 확인해주세요");
-      return;
-    }
+    // 통신이 끊기면 supabase-js 도 Server Action 도 예외를 그대로 던진다.
+    // 이벤트 핸들러의 예외는 에러 바운더리가 잡지 않으므로 여기서 받는다.
+    // 받지 않으면 busy 가 true 로 남아 버튼이 영영 잠긴다
+    try {
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email: sentTo,
+        token: trimmedCode,
+        type: "email",
+      });
 
-    // 로그인은 "이 주소의 주인이다" 까지만 보장한다.
-    // 관리자인지는 서버가 판단하고, 아니면 서버가 세션을 끊는다
-    const result = await completeAdminLogin();
-    if (!result.ok) {
-      // 서버가 이미 끊었지만 브라우저에 남은 상태도 정리한다
-      await supabase.auth.signOut();
+      if (verifyError) {
+        setBusy(false);
+        setError("코드가 맞지 않아요. 다시 확인해주세요");
+        return;
+      }
+
+      // 로그인은 "이 주소의 주인이다" 까지만 보장한다.
+      // 관리자인지는 서버가 판단하고, 아니면 서버가 세션을 끊는다
+      const result = await completeAdminLogin();
+      if (!result.ok) {
+        // 서버가 이미 끊었지만 브라우저에 남은 상태도 정리한다
+        await supabase.auth.signOut().catch(() => undefined);
+        setBusy(false);
+        setStage("email");
+        setCode("");
+        setError(result.error);
+        return;
+      }
+    } catch {
       setBusy(false);
-      setStage("email");
-      setCode("");
-      setError(result.error);
+      setError("연결이 끊겼어요. 잠시 뒤 다시 눌러주세요");
       return;
     }
 
