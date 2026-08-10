@@ -594,8 +594,24 @@ revoke all on all sequences in schema public from anon, authenticated;
 
 -- people : created_by 는 관리자 이메일이므로 아무에게도 컬럼을 열지 않는다.
 -- 관리자는 person_totals_internal 을 통해 본다
-grant select (id, name, group_name, created_at) on public.people to anon, authenticated;
-grant insert                                    on public.people to authenticated;
+--
+-- ⚠ hidden_at 은 반드시 이 목록에 있어야 한다.
+--   홈 화면이 숨긴 사람을 빼려면 그 컬럼을 읽어야 하는데, 컬럼 단위 권한에서
+--   빠지면 select 전체가 42501(permission denied) 로 거절된다.
+--   컬럼을 하나 더할 때마다 이 줄을 같이 고쳐야 한다는 뜻이다
+grant select (id, name, group_name, hidden_at, created_at) on public.people to anon, authenticated;
+grant insert                                              on public.people to authenticated;
+
+-- 숨기기·되돌리기·삭제 (관리자 전용).
+--
+-- RLS 정책(people_update_admin·people_delete_admin)만으로는 부족하다.
+-- 권한이 먼저 걸리고 그다음에 정책을 본다. 정책만 있고 GRANT 가 없으면
+-- 관리자여도 42501 로 막힌다.
+--
+-- update 는 hidden_at 만 연다. 이름·조를 고치는 화면은 아직 없다.
+-- 열어둘 이유가 없는 컬럼은 열지 않는다 (feedbacks.excluded_at 과 같은 방식)
+grant update (hidden_at) on public.people to authenticated;
+grant delete             on public.people to authenticated;
 
 -- strengths : 누구나 읽기
 grant select on public.strengths to anon, authenticated;
