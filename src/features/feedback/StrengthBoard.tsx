@@ -128,33 +128,46 @@ export function StrengthBoard({ person }: StrengthBoardProps) {
         떠오르는 강점을 눌러 이유를 적어주세요. 한 번에 하나씩 남깁니다.
       </p>
 
-      <div className="mt-6 flex flex-col gap-8">
+      {/*
+        고르는 사람에게는 스물넷이 한 화면에 들어오는 것이 가장 중요하다.
+        카드마다 한 줄 설명을 달면 목록이 세 배로 길어져서, 아래쪽 강점은
+        스크롤을 내리다 지쳐 후보에서 빠진다. 이름만 남기고 한 줄로 눕힌다.
+        설명은 옆의 작은 버튼으로 언제든 열 수 있다.
+      */}
+      <div className="mt-6 flex flex-col gap-6">
         {STRENGTHS_BY_VIRTUE.map(({ virtue, meta, strengths }) => (
           <section key={virtue}>
             <h2 className={`text-sm ${meta.textClass}`}>{meta.nameKo}</h2>
 
-            <ul className="mt-2 grid gap-2 sm:grid-cols-2">
+            <ul className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
               {strengths.map((strength) => {
                 const done = doneCodes.has(strength.code);
                 return (
-                  <li key={strength.code} className="relative">
+                  <li
+                    key={strength.code}
+                    className="flex items-stretch overflow-hidden rounded-base border border-line bg-surface"
+                  >
                     <button
                       type="button"
                       onClick={() => openWrite(strength)}
                       disabled={done}
-                      className="w-full rounded-base border border-line bg-surface p-4 pr-20 text-left disabled:opacity-50"
+                      className="flex min-h-11 flex-1 items-center gap-2 px-3 text-left disabled:opacity-50"
                     >
+                      {/* 덕목 색 점. 머리글에서 눈을 떼도 어느 묶음인지 남는다 */}
+                      <span
+                        className={`size-1.5 shrink-0 rounded-full ${meta.barClass}`}
+                      />
                       <span className="font-display text-base">{strength.nameKo}</span>
-                      <span className="mt-1 block text-sm text-muted">
-                        {done ? "이미 남겼어요" : strength.short}
-                      </span>
+                      {done && (
+                        <span className="ml-auto shrink-0 text-xs text-muted">남김</span>
+                      )}
                     </button>
 
                     <button
                       type="button"
                       onClick={() => setInfo(strength)}
                       aria-label={`${strength.nameKo} 설명 보기`}
-                      className="absolute right-1 top-1 min-h-11 min-w-11 rounded-base px-2 text-sm text-muted underline underline-offset-4"
+                      className="min-h-11 shrink-0 border-l border-line px-3 text-xs text-muted"
                     >
                       설명
                     </button>
