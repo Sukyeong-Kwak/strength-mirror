@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "gen:types": "npx --yes supabase@latest gen types typescript --project-id $(grep -m1 '^SUPABASE_PROJECT_ID=' .env.local | cut -d= -f2-) --schema public > src/types/database.next.ts && mv src/types/database.next.ts src/types/database.ts"
+    "gen:types": "node scripts/gen-types.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
