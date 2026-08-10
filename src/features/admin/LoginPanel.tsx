@@ -10,39 +10,31 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 type LoginPanelProps = {
   /** 로그인 후 돌아갈 경로 */
   next: string;
-  /** 콜백에서 넘어온 오류 */
+  /** 로그아웃 라우트에서 넘어온 오류 */
   initialError: string | null;
 };
 
-type OtpStage = "idle" | "sent";
+type Stage = "email" | "code";
 
 const OTP_LENGTH = 6;
+
+/**
+ * 코드를 보낸 뒤의 안내는 성공·실패를 구분하지 않는다.
+ *
+ * 구분하면 "이 주소가 관리자인가" 를 알려주는 신호가 된다.
+ * 계정은 대시보드에서 미리 만들어 두므로(shouldCreateUser: false),
+ * 등록되지 않은 주소로는 애초에 코드가 가지 않는다.
+ */
+const CODE_SENT_NOTICE = `메일로 ${OTP_LENGTH}자리 코드를 보냈어요. 받은 편지함을 확인해주세요`;
 
 export function LoginPanel({ next, initialError }: LoginPanelProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(initialError);
   const [busy, setBusy] = useState(false);
-  const [showOtp, setShowOtp] = useState(false);
-  const [stage, setStage] = useState<OtpStage>("idle");
+  const [stage, setStage] = useState<Stage>("email");
   const [email, setEmail] = useState("");
+  const [sentTo, setSentTo] = useState("");
   const [code, setCode] = useState("");
-
-  async function signInWithGoogle() {
-    setBusy(true);
-    setError(null);
-    const supabase = createSupabaseBrowserClient();
-    const redirectTo = `${window.location.origin}/admin/auth/callback?next=${encodeURIComponent(next)}`;
-
-    const { error: oauthError } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo },
-    });
-
-    if (oauthError) {
-      setBusy(false);
-      setError("구글 로그인을 시작하지 못했어요. 잠시 뒤 다시 눌러주세요");
-    }
-  }
 
   async function sendCode() {
     const trimmed = email.trim().toLowerCase();
@@ -53,32 +45,35 @@ export function LoginPanel({ next, initialError }: LoginPanelProps) {
 
     setBusy(true);
     setError(null);
-    const supabase = createSupabaseBrowserClient();
-    const { error: otpError } = await supabase.auth.signInWithOtp({
-      email: trimmed,
-      options: { shouldCreateUser: true },
-    });
-    setBusy(false);
 
-    if (otpError) {
-      setError("코드를 보내지 못했어요. 주소를 확인하고 다시 눌러주세요");
-      return;
-    }
-    setStage("sent");
+    const supabase = createSupabaseBrowserClient();
+    await supabase.auth.signInWithOtp({
+      email: trimmed,
+      // 계정은 대시보드에서 미리 만든다.
+      // 아무나 코드를 요청해 메일 할당량을 소진시키는 것을 막는다
+      options: { shouldCreateUser: false },
+    });
+
+    // 결과를 보지 않고 넘어간다. 위 주석 참고
+    setBusy(false);
+    setSentTo(trimmed);
+    setStage("code");
   }
 
   async function verifyCode() {
-    if (code.trim().length !== OTP_LENGTH) {
+    const trimmedCode = code.trim();
+    if (trimmedCode.length !== OTP_LENGTH) {
       setError(`코드 ${OTP_LENGTH}자리를 입력해주세요`);
       return;
     }
 
     setBusy(true);
     setError(null);
+
     const supabase = createSupabaseBrowserClient();
     const { error: verifyError } = await supabase.auth.verifyOtp({
-      email: email.trim().toLowerCase(),
-      token: code.trim(),
+      email: sentTo,
+      token: trimmedCode,
       type: "email",
     });
 
@@ -88,11 +83,14 @@ export function LoginPanel({ next, initialError }: LoginPanelProps) {
       return;
     }
 
+    // 로그인은 "이 주소의 주인이다" 까지만 보장한다.
+    // 관리자인지는 서버가 판단하고, 아니면 서버가 세션을 끊는다
     const result = await completeAdminLogin();
     if (!result.ok) {
+      // 서버가 이미 끊었지만 브라우저에 남은 상태도 정리한다
       await supabase.auth.signOut();
       setBusy(false);
-      setStage("idle");
+      setStage("email");
       setCode("");
       setError(result.error);
       return;
@@ -104,25 +102,14 @@ export function LoginPanel({ next, initialError }: LoginPanelProps) {
 
   return (
     <div className="space-y-4">
-      <Button block disabled={busy} onClick={signInWithGoogle}>
-        구글로 로그인
-      </Button>
-
-      {!showOtp && (
-        <button
-          type="button"
-          className="w-full py-2 text-sm text-muted underline underline-offset-4"
-          onClick={() => {
-            setShowOtp(true);
-            setError(null);
+      {stage === "email" && (
+        <form
+          className="space-y-3 rounded-base border border-line bg-surface p-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void sendCode();
           }}
         >
-          이메일로 코드 받기
-        </button>
-      )}
-
-      {showOtp && (
-        <div className="space-y-3 rounded-base border border-line bg-surface p-4">
           <label className="block text-sm text-muted" htmlFor="admin-email">
             이메일
           </label>
@@ -131,52 +118,65 @@ export function LoginPanel({ next, initialError }: LoginPanelProps) {
             type="email"
             inputMode="email"
             autoComplete="email"
+            autoFocus
             value={email}
-            disabled={busy || stage === "sent"}
+            disabled={busy}
             onChange={(event) => setEmail(event.target.value)}
             className="min-h-11 w-full rounded-base border border-line px-3 text-base"
           />
+          <Button block type="submit" disabled={busy}>
+            코드 받기
+          </Button>
+        </form>
+      )}
 
-          {stage === "idle" && (
-            <Button block variant="secondary" disabled={busy} onClick={sendCode}>
-              코드 받기
+      {stage === "code" && (
+        <>
+          <div className="rounded-base border border-line bg-surface px-4 py-3">
+            <p className="text-sm text-muted">{CODE_SENT_NOTICE}</p>
+            <p className="mt-1 text-sm">{sentTo}</p>
+          </div>
+
+          <form
+            className="space-y-3 rounded-base border border-line bg-surface p-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void verifyCode();
+            }}
+          >
+            <label className="block text-sm text-muted" htmlFor="admin-code">
+              받은 코드 {OTP_LENGTH}자리
+            </label>
+            <input
+              id="admin-code"
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={OTP_LENGTH}
+              autoFocus
+              value={code}
+              disabled={busy}
+              onChange={(event) => setCode(event.target.value)}
+              className="num min-h-11 w-full rounded-base border border-line px-3 text-base tracking-widest"
+            />
+            <Button block type="submit" disabled={busy}>
+              로그인
             </Button>
-          )}
+          </form>
 
-          {stage === "sent" && (
-            <>
-              <label className="block text-sm text-muted" htmlFor="admin-code">
-                메일로 받은 {OTP_LENGTH}자리 코드
-              </label>
-              <input
-                id="admin-code"
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                maxLength={OTP_LENGTH}
-                value={code}
-                disabled={busy}
-                onChange={(event) => setCode(event.target.value)}
-                className="num min-h-11 w-full rounded-base border border-line px-3 text-base tracking-widest"
-              />
-              <Button block disabled={busy} onClick={verifyCode}>
-                로그인
-              </Button>
-              <button
-                type="button"
-                className="w-full py-2 text-sm text-muted underline underline-offset-4"
-                disabled={busy}
-                onClick={() => {
-                  setStage("idle");
-                  setCode("");
-                  setError(null);
-                }}
-              >
-                주소 바꾸기
-              </button>
-            </>
-          )}
-        </div>
+          <Button
+            block
+            variant="quiet"
+            disabled={busy}
+            onClick={() => {
+              setStage("email");
+              setCode("");
+              setError(null);
+            }}
+          >
+            다른 주소로 받기
+          </Button>
+        </>
       )}
 
       {error !== null && (

@@ -5,7 +5,6 @@ import { getAdminSession } from "@/lib/auth/admin";
 
 const ERROR_MESSAGES: Record<string, string> = {
   forbidden: "접근 권한이 없는 계정이에요",
-  oauth: "로그인을 마치지 못했어요. 다시 눌러주세요",
 };
 
 type LoginPageProps = {
