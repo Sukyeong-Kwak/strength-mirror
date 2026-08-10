@@ -50,9 +50,14 @@
   /* 형태 — 모서리 반경 6px 고정 (6-4) */
   --radius-base: 6px;
 
-  /* 서체 두 벌 (6-3) */
-  --font-sans: var(--font-pretendard), system-ui, sans-serif;
-  --font-display: var(--font-do-hyeon), var(--font-pretendard), sans-serif;
+  /*
+   * 서체 두 벌 (6-3).
+   *
+   * 실제 글씨체와 굵기는 src/lib/fonts.ts 한 곳에서 정한다.
+   * 여기서는 그 파일이 실어 보낸 변수만 쓴다. 글씨체를 바꿔도 이 파일은 그대로다.
+   */
+  --font-sans: var(--font-body-family), system-ui, sans-serif;
+  --font-display: var(--font-display-family), var(--font-body-family), sans-serif;
 }
 
 /*
@@ -65,17 +70,17 @@
  */
 h1 {
   font-family: var(--font-display);
+  font-weight: var(--font-display-weight-title, 400);
   letter-spacing: -0.01em;
 }
 
 /*
- * 도현체는 굵기가 400 한 벌뿐이다.
- * font-bold 를 붙이면 브라우저가 없는 굵기를 억지로 만들어 획이 뭉개진다.
- * 표제 서체를 쓰는 곳에는 굵기를 올리지 않는다.
+ * 사람 이름과 강점 이름 (6-3).
+ * 굵기는 글씨체가 실제로 가진 값만 쓴다. 없는 굵기를 지정하면
+ * 브라우저가 억지로 굵게 그려 획이 뭉개진다.
  */
-h1,
 .font-display {
-  font-weight: 400;
+  font-weight: var(--font-display-weight-name, 400);
 }
 
 /* 폰트 로딩 전에도 레이아웃이 흔들리지 않게 */
