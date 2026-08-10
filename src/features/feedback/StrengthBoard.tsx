@@ -182,10 +182,10 @@ export function StrengthBoard({ person }: StrengthBoardProps) {
           step === "write" ? (
             <div className="flex gap-2">
               <Button variant="secondary" onClick={closeWrite} block>
-                그만두기
+                취소
               </Button>
               <Button onClick={() => setStep("confirm")} disabled={!canSave} block>
-                다 썼어요
+                등록하기
               </Button>
             </div>
           ) : (
@@ -196,10 +196,10 @@ export function StrengthBoard({ person }: StrengthBoardProps) {
                 disabled={pending}
                 block
               >
-                다시 고치기
+                수정
               </Button>
               <Button onClick={save} disabled={pending} block>
-                {pending ? "남기는 중…" : "이대로 남기기"}
+                {pending ? "등록 중…" : "등록"}
               </Button>
             </div>
           )
