@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { Chip, buttonClass } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { MIN_STRENGTHS_PER_PERSON } from "@/lib/constants";
 import { sortGroupNames } from "@/lib/groups";
@@ -59,18 +60,9 @@ export function ReceiptStatusTable({
 
       <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
         {groups.map((name) => (
-          <button
-            key={name}
-            type="button"
-            onClick={() => setGroup(name)}
-            className={`min-h-11 shrink-0 rounded-base border px-3 text-sm ${
-              group === name
-                ? "border-ink bg-ink text-surface"
-                : "border-line bg-surface text-ink"
-            }`}
-          >
+          <Chip key={name} pressed={group === name} onClick={() => setGroup(name)}>
             {name}
-          </button>
+          </Chip>
         ))}
       </div>
 
@@ -93,10 +85,7 @@ export function ReceiptStatusTable({
             }
             action={
               filtered ? undefined : (
-                <Link
-                  href="/admin/people/import"
-                  className="inline-flex min-h-11 items-center justify-center rounded-base border border-ink bg-ink px-4 text-base text-surface"
-                >
+                <Link href="/admin/people/import" className={buttonClass("primary")}>
                   명단 등록하러 가기
                 </Link>
               )

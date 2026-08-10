@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { logoutAdmin } from "@/actions/admin/logout";
+import { Button, buttonClass } from "@/components/Button";
 import { adminDisplayName, type AdminSession } from "@/lib/auth/admin";
 
 type AdminShellProps = {
@@ -24,20 +25,14 @@ export function AdminShell({
           {adminDisplayName(session)}님으로 로그인 중
         </p>
         <form action={logoutAdmin}>
-          <button
-            type="submit"
-            className="min-h-11 px-2 text-sm text-muted underline underline-offset-4"
-          >
+          <Button type="submit" variant="secondary" size="sm">
             로그아웃
-          </button>
+          </Button>
         </form>
       </header>
 
       {backHref !== undefined && (
-        <Link
-          href={backHref}
-          className="mt-4 inline-block min-h-11 py-3 text-sm text-muted underline underline-offset-4"
-        >
+        <Link href={backHref} className={`mt-4 ${buttonClass("secondary", false, "sm")}`}>
           관리자 홈으로
         </Link>
       )}

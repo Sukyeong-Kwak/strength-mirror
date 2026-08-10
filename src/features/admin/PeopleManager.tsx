@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 
 import { deletePerson, setPersonHidden } from "@/actions/admin/managePeople";
-import { Button } from "@/components/Button";
+import { Button, Chip, buttonClass } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { sortGroupNames } from "@/lib/groups";
 import type { PersonTotals } from "@/types/domain";
@@ -103,10 +103,7 @@ export function PeopleManager({ people }: PeopleManagerProps) {
         <EmptyState
           title="아직 등록된 사람이 없어요. 명단부터 등록해주세요"
           action={
-            <Link
-              href="/admin/people/import"
-              className="inline-flex min-h-11 items-center justify-center rounded-base border border-ink bg-ink px-4 text-base text-surface"
-            >
+            <Link href="/admin/people/import" className={buttonClass("primary")}>
               명단 등록하러 가기
             </Link>
           }
@@ -122,28 +119,16 @@ export function PeopleManager({ people }: PeopleManagerProps) {
           {people.length}명
           {hiddenCount > 0 ? ` · 숨김 ${hiddenCount}명` : ""}
         </p>
-        <Link
-          href="/admin/people/import"
-          className="min-h-11 py-3 text-sm text-muted underline underline-offset-4"
-        >
+        <Link href="/admin/people/import" className={buttonClass("secondary", false, "sm")}>
           명단 등록
         </Link>
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1">
         {groups.map((name) => (
-          <button
-            key={name}
-            type="button"
-            onClick={() => setGroup(name)}
-            className={`min-h-11 shrink-0 rounded-base border px-3 text-sm ${
-              group === name
-                ? "border-ink bg-ink text-surface"
-                : "border-line bg-surface text-ink"
-            }`}
-          >
+          <Chip key={name} pressed={group === name} onClick={() => setGroup(name)}>
             {name}
-          </button>
+          </Chip>
         ))}
       </div>
 
