@@ -27,14 +27,34 @@ export function StrengthBody({ strength }: { strength: StrengthDef }) {
         ? "비슷한 강점과 무엇이 다른가요"
         : "이런 뜻은 아니에요";
 
+  // "독창성 · 기발함이라고도 해요" — 마지막 낱말 받침에 조사를 맞춘다
+  const lastAlias = strength.alsoCalled.at(-1) ?? "";
+
   return (
     <div>
-      <p className={`text-sm ${meta.textClass}`}>
-        {meta.nameKo} · {strength.nameEn}
+      {/*
+        덕목과 영문 이름은 위계가 다르다.
+        "지혜와 지식 · Creativity" 처럼 가운뎃점으로 이으면 둘이 같은 층으로 읽혀서,
+        Creativity 가 덕목 이름인지 강점 이름인지 헷갈린다.
+        덕목은 분류라서 테두리 있는 칩으로, 영문 이름은 이 강점에 딸린 것이라
+        아래 줄에 무엇인지 적어서 낮춘다.
+      */}
+      <p>
+        <span
+          className={`inline-block rounded-base border px-2 py-1 text-xs ${meta.chipClass}`}
+        >
+          {meta.nameKo}
+        </span>
       </p>
+
+      <p className="mt-2 text-sm text-muted">
+        영문 이름 <span className="text-ink">{strength.nameEn}</span>
+      </p>
+
       {strength.alsoCalled.length > 0 && (
         <p className="mt-1 text-sm text-muted">
-          {strength.alsoCalled.join(" · ")} 라고도 해요
+          {strength.alsoCalled.join(" · ")}
+          {josa(lastAlias, "이라고/라고")}도 해요
         </p>
       )}
 

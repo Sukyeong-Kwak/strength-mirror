@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 
 import { buttonClass } from "@/components/Button";
 import { StrengthBody } from "@/features/strengths/StrengthBody";
-import { findStrength, STRENGTHS, VIRTUE_META } from "@/lib/strengths";
+import { findStrength, STRENGTHS } from "@/lib/strengths";
 
 type StrengthPageProps = {
   params: Promise<{ code: string }>;
@@ -39,16 +39,14 @@ export default async function StrengthPage({ params }: StrengthPageProps) {
     notFound();
   }
 
-  const meta = VIRTUE_META[strength.virtue];
-
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-6">
       <Link href="/strengths" className={buttonClass()}>
         24가지 강점 목차
       </Link>
 
-      <p className={`mt-4 text-sm ${meta.textClass}`}>{meta.nameKo}</p>
-      <h1 className="mt-1 text-2xl">{strength.nameKo}</h1>
+      {/* 덕목은 아래 설명 상자의 칩이 보여준다. 여기서 또 적으면 두 번 읽힌다 */}
+      <h1 className="mt-4 text-2xl">{strength.nameKo}</h1>
       <p className="mt-2 text-base text-muted">{strength.short}</p>
 
       <div className="mt-6 rounded-base border border-line bg-surface p-5">

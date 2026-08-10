@@ -30,6 +30,8 @@ const PARTICLES = {
   "은/는": ["은", "는"],
   "이/가": ["이", "가"],
   "을/를": ["을", "를"],
+  /** "기발함이라고도" · "지혜라고도" */
+  "이라고/라고": ["이라고", "라고"],
 } as const;
 
 export type ParticlePair = keyof typeof PARTICLES;
