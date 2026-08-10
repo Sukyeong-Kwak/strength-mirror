@@ -5,7 +5,7 @@ import { fontVariables, fontWeightStyle } from "@/lib/fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "강점 남기기",
+  title: "강점 발굴",
   // 부록 A 의 강점 설명문이 아닌 곳에서는 '함께' 를 쓰지 않는다
   description: "서로에게서 본 강점을 남기고, 모이면 결과를 볼 수 있어요",
 };

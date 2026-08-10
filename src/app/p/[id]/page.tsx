@@ -16,7 +16,7 @@ type PersonPageProps = {
  * 누가 누구에게 남기는지가 주소창 밖으로 새어나갈 이유가 없다.
  */
 export const metadata: Metadata = {
-  title: "강점 남기기",
+  title: "강점 발굴",
   robots: { index: false, follow: false },
 };
 

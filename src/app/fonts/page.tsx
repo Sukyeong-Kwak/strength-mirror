@@ -200,7 +200,7 @@ function Sample({ candidate }: { candidate: Candidate }) {
         className={`mt-4 text-2xl ${className}`}
         style={{ fontWeight: titleWeight, letterSpacing: "-0.01em" }}
       >
-        강점 남기기
+        강점 발굴
       </p>
       <p
         className={`mt-1 text-2xl ${className}`}
