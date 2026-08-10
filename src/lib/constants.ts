@@ -15,9 +15,16 @@ export const MIN_STRENGTHS_PER_PERSON = 5;
 /** 조가 지정되지 않은 인원을 묶어 부르는 이름 (5-9) */
 export const UNASSIGNED_GROUP_LABEL = "미지정";
 
-/** localStorage 키 (5-11). 이 세 개로 통일한다 */
+/**
+ * localStorage 키 (5-11). 이 세 개로 통일한다.
+ *
+ * submitted 는 이미 강점을 남긴 사람의 id 목록이다.
+ * 서버에 묻지 않는 이유는, 기기를 식별하려면 그 값을 어차피
+ * localStorage 에 둬야 하고 그러면 저장소를 지울 때 같이 사라지기 때문이다.
+ * 서버에 제출자 식별값을 남기지 않는 편이 낫다.
+ */
 export const STORAGE_KEYS = {
-  clientId: "via:clientId:v1",
+  submitted: "via:submitted:v1",
   myGroup: "via:myGroup:v1",
   draftPrefix: "via:draft:",
 } as const;
@@ -35,9 +42,6 @@ export const BAR_DURATION_MS = 700;
 
 /** 관리자 홈 최근 활동 표시 건수 (5-7) */
 export const RECENT_ACTIVITY_LIMIT = 20;
-
-/** 중복 점검 — 같은 기기·같은 강점의 '짧은 간격' 판정 기준 (5-11) */
-export const DUPLICATE_SHORT_INTERVAL_MINUTES = 5;
 
 /** 차트 스택 막대에서 라벨을 막대 안에 넣는 최소 구간 폭 (7-3) */
 export const STACK_INLINE_LABEL_MIN_RATIO = 4;

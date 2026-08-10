@@ -5,9 +5,10 @@
 --   Supabase 대시보드 → SQL Editor → 이 파일 전체를 붙여넣고 Run
 --   여러 번 실행해도 같은 상태가 되도록 작성했다 (drop/if not exists)
 --
--- 실행 전에 아래 두 가지를 반드시 처리할 것
---   1) 이 파일 맨 아래 admin_allowlist seed 에 본인 이메일을 넣는다
---   2) 아래 device pepper 를 .env.local 의 DEVICE_ID_PEPPER 와 같은 값으로 맞춘다
+-- 실행 전에 반드시 처리할 것
+--   이 파일 맨 아래 admin_allowlist seed 에 본인 이메일을 넣는다
+--
+-- 채워 넣을 비밀값은 없다. 붙여넣고 그대로 실행하면 된다.
 -- ============================================================
 
 
@@ -21,21 +22,33 @@ create extension if not exists pgcrypto with schema extensions;
 
 
 -- ------------------------------------------------------------
--- 2. 테이블
+-- 1-1. 이전 버전 정리 — 기기 식별 장치를 걷어낸다
+--
+-- 기기별 중복을 '차단'한 적은 없었다. 차단은 submission_key 가 한다.
+-- client_hash 는 "이전에 남김" 표시와 관리자 중복 점검에만 쓰였는데,
+-- 식별자 자체가 localStorage 에 있어서 서버에 물어봐도 얻는 게 없었다.
+-- 중복 점검 화면을 포기하고 전부 지운다. pepper 관리 부담이 사라진다.
+--
+-- 이 블록이 없으면 재실행이 깨진다.
+-- 기존 DB 에는 client_hash 가 not null 로 남아 있어서
+-- 새 submit_feedback 의 INSERT 가 제약 위반으로 실패한다.
 -- ------------------------------------------------------------
 
--- 서버 전용 설정값 보관소.
---
--- Supabase 의 postgres 롤은 슈퍼유저가 아니라서
--- `alter database ... set app.device_pepper` 로 커스텀 GUC 를 만들 수 없다.
--- 그래서 pepper 를 이 테이블에 두고 security definer 함수로만 꺼내 쓴다.
---
--- 이 테이블은 RLS 를 켜고 정책을 하나도 만들지 않으며, 어떤 역할에도
--- 권한을 주지 않는다. 즉 API 로는 어떤 경로로도 읽을 수 없다.
-create table if not exists public.app_config (
-  key   text primary key,
-  value text not null
-);
+-- 옛 시그니처를 명시적으로 지운다.
+-- create or replace 는 인자가 다르면 새 오버로드를 만들 뿐 옛것을 지우지 않는다
+drop function if exists public.submit_feedback(uuid, text, text, uuid, jsonb);
+drop function if exists public.get_my_submissions(text);
+drop function if exists public.device_pepper();
+
+-- 컬럼을 지우면 딸린 인덱스도 함께 사라진다
+alter table if exists public.feedbacks drop column if exists client_hash;
+
+drop table if exists public.app_config;
+
+
+-- ------------------------------------------------------------
+-- 2. 테이블
+-- ------------------------------------------------------------
 
 -- 피드백을 받는 대상자. 동명이인을 허용하므로 unique 제약을 두지 않는다
 create table if not exists public.people (
@@ -64,9 +77,8 @@ create table if not exists public.feedbacks (
   id             uuid primary key default gen_random_uuid(),
   person_id      uuid not null references public.people(id) on delete cascade,
   author_name    text null check (author_name is null or char_length(btrim(author_name)) between 1 and 20),
-  -- 기기 식별 해시. 참고용 신호일 뿐 차단·집계에 쓰지 않는다 (5-11)
-  client_hash    text not null,
-  -- 멱등 키. 같은 키로 두 번 오면 두 번째는 무시된다
+  -- 멱등 키. 같은 키로 두 번 오면 두 번째는 무시된다.
+  -- 중복 제출을 막는 것은 이 키 하나다. 기기를 식별하지 않는다
   submission_key uuid not null unique,
   -- 관리자가 제외 처리한 시각. null 이면 정상
   excluded_at    timestamptz null,
@@ -90,7 +102,8 @@ create table if not exists public.admin_allowlist (
   created_at timestamptz not null default now()
 );
 
--- 관리자가 여러 명이므로 누가 무엇을 했는지 남긴다. client_hash 는 절대 넣지 말 것
+-- 관리자가 여러 명이므로 누가 무엇을 했는지 남긴다.
+-- 제출자를 식별할 수 있는 것은 어떤 형태로도 넣지 말 것
 create table if not exists public.admin_audit_log (
   id          bigserial primary key,
   admin_email text not null,
@@ -103,32 +116,11 @@ create table if not exists public.admin_audit_log (
 
 
 -- ------------------------------------------------------------
--- 2-1. device pepper
---
--- 아래 자리표시자를 .env.local 의 DEVICE_ID_PEPPER 와 같은 값으로 바꾼 뒤 실행한다.
--- 값이 다르면 "이전에 남김" 표시와 진행률이 동작하지 않는다.
---
--- 이 파일은 저장소에 커밋되므로 실제 pepper 를 여기에 적어두지 말 것.
---
--- 한번 정하면 바꾸지 말 것. 값을 바꾸면 이미 쌓인 client_hash 와
--- 매칭되지 않아 기존 제출 이력이 전부 다른 기기로 인식된다.
--- 그래서 이미 값이 있으면 덮어쓰지 않는다 (재실행해도 안전하도록).
--- ------------------------------------------------------------
-
-insert into public.app_config (key, value) values
-  ('device_pepper', 'PASTE_DEVICE_ID_PEPPER_HERE')
-on conflict (key) do nothing;
-
-
--- ------------------------------------------------------------
 -- 3. 인덱스
 -- ------------------------------------------------------------
 
 create index if not exists people_group_name_idx
   on public.people (group_name);
-
-create index if not exists feedbacks_client_hash_person_idx
-  on public.feedbacks (client_hash, person_id);
 
 create index if not exists feedbacks_person_idx
   on public.feedbacks (person_id);
@@ -182,19 +174,6 @@ begin
   end if;
   return true;
 end;
-$$;
-
-
--- pepper 접근자. 어떤 역할에도 실행 권한을 주지 않으므로
--- 소유자(postgres)로 실행되는 다른 security definer 함수 안에서만 호출된다
-create or replace function public.device_pepper()
-returns text
-language sql
-security definer
-stable
-set search_path = ''
-as $$
-  select value from public.app_config where key = 'device_pepper';
 $$;
 
 
@@ -567,7 +546,7 @@ select
 from ranked
 where public.results_unlocked();
 
--- 사유 목록. client_hash 를 포함하지 않는다.
+-- 사유 목록.
 -- 사유 카드 개수를 세면 그 사람이 받은 건수가 되므로 같은 게이트를 적용한다
 create view public.feedback_reasons_public as
 select
@@ -626,12 +605,9 @@ grant select on public.group_totals_internal  to authenticated;
 
 -- feedback_items_active 는 어떤 역할에도 주지 않는다 (다른 뷰의 재료일 뿐)
 
--- app_config 는 어떤 역할에도 주지 않는다 (pepper 보관소)
-
 -- 함수 실행 권한
 revoke all on function public.is_admin()          from public, anon, authenticated;
 revoke all on function public.assert_admin()      from public, anon, authenticated;
-revoke all on function public.device_pepper()     from public, anon, authenticated;
 revoke all on function public.results_unlocked()  from public, anon, authenticated;
 revoke all on function public.results_remaining() from public, anon, authenticated;
 
@@ -648,8 +624,6 @@ grant execute on function public.results_remaining() to anon, authenticated;
 -- UPDATE 는 관리자의 excluded_at 설정·해제만, DELETE 는 admin_allowlist 만.
 -- ------------------------------------------------------------
 
--- app_config 는 정책을 하나도 만들지 않는다. RLS 만 켜두면 아무도 읽을 수 없다
-alter table public.app_config      enable row level security;
 alter table public.people          enable row level security;
 alter table public.strengths       enable row level security;
 alter table public.feedbacks       enable row level security;
@@ -769,7 +743,6 @@ create trigger admin_allowlist_keep_one
 create or replace function public.submit_feedback(
   p_person_id      uuid,
   p_author_name    text,
-  p_client_id      text,
   p_submission_key uuid,
   p_items          jsonb
 )
@@ -779,8 +752,6 @@ security definer
 set search_path = extensions, public
 as $$
 declare
-  v_pepper        text;
-  v_hash          text;
   v_count         int;
   v_distinct      int;
   v_feedback_id   uuid;
@@ -788,10 +759,6 @@ declare
 begin
   if p_person_id is null or p_submission_key is null then
     raise exception 'person_id and submission_key are required';
-  end if;
-
-  if p_client_id is null or btrim(p_client_id) = '' then
-    raise exception 'client_id is required';
   end if;
 
   if p_items is null or jsonb_typeof(p_items) <> 'array' then
@@ -822,7 +789,7 @@ begin
     raise exception 'items must not repeat the same strength';
   end if;
 
-  -- 멱등 처리를 먼저 한다. 이미 있으면 pepper 조회 없이 그대로 돌려준다
+  -- 멱등 처리. 같은 키가 다시 오면 새로 넣지 않고 기존 id 를 그대로 돌려준다
   select id, person_id into v_feedback_id, v_existing_person
   from public.feedbacks
   where submission_key = p_submission_key;
@@ -835,19 +802,12 @@ begin
     return v_feedback_id;
   end if;
 
-  v_pepper := public.device_pepper();
-  if v_pepper is null or btrim(v_pepper) = '' then
-    raise exception 'device_pepper is not configured';
-  end if;
-
-  -- 원본 client_id 는 어디에도 저장하지 않는다
-  v_hash := encode(hmac(p_client_id, v_pepper, 'sha256'), 'hex');
-
-  insert into public.feedbacks (person_id, author_name, client_hash, submission_key)
+  -- 제출자를 식별하는 값은 저장하지 않는다.
+  -- 누가 남겼는지는 author_name 을 스스로 적었을 때만 남는다
+  insert into public.feedbacks (person_id, author_name, submission_key)
   values (
     p_person_id,
     nullif(btrim(coalesce(p_author_name, '')), ''),
-    v_hash,
     p_submission_key
   )
   on conflict (submission_key) do nothing
@@ -872,46 +832,19 @@ begin
 end;
 $$;
 
--- 이 기기의 제출 내역만 반환한다.
--- 해시 원본을 모르면 다른 기기의 데이터는 어떤 인자로도 조회할 수 없다
-create or replace function public.get_my_submissions(p_client_id text)
-returns table (person_id uuid, strength_code text, created_at timestamptz)
-language plpgsql
-security definer
-set search_path = extensions, public
-as $$
-declare
-  v_pepper text;
-  v_hash   text;
-begin
-  if p_client_id is null or btrim(p_client_id) = '' then
-    return;
-  end if;
+-- "이전에 남김" 표시는 서버에 묻지 않는다.
+--
+-- 기기를 식별하려면 그 값을 브라우저에 저장해야 하는데, 그 저장소가
+-- localStorage 다. 저장소를 지우면 식별자도 같이 사라지므로
+-- 서버에 물어봐도 돌아오는 게 없다. 그래서 목록 자체를 localStorage 에 둔다.
+-- (STORAGE_KEYS — src/lib/constants.ts)
+--
+-- 그 대신 서버에는 제출자를 식별하는 값이 하나도 남지 않는다.
 
-  v_pepper := public.device_pepper();
-  if v_pepper is null or btrim(v_pepper) = '' then
-    raise exception 'device_pepper is not configured';
-  end if;
-
-  v_hash := encode(hmac(p_client_id, v_pepper, 'sha256'), 'hex');
-
-  return query
-  select f.person_id, i.strength_code, f.created_at
-  from public.feedbacks f
-  join public.feedback_items i on i.feedback_id = f.id
-  where f.client_hash = v_hash
-    and f.excluded_at is null;
-end;
-$$;
-
-revoke all on function public.submit_feedback(uuid, text, text, uuid, jsonb)
-  from public, anon, authenticated;
-revoke all on function public.get_my_submissions(text)
+revoke all on function public.submit_feedback(uuid, text, uuid, jsonb)
   from public, anon, authenticated;
 
-grant execute on function public.submit_feedback(uuid, text, text, uuid, jsonb)
-  to anon, authenticated;
-grant execute on function public.get_my_submissions(text)
+grant execute on function public.submit_feedback(uuid, text, uuid, jsonb)
   to anon, authenticated;
 
 
@@ -980,6 +913,10 @@ notify pgrst, 'reload schema';
 --
 --   select * from public.results_status;    -- unlocked=false, remaining=0
 --   select count(*) from public.strengths;  -- 24
---   select public.device_pepper();          -- pepper 값이 보여야 한다
 --   select * from public.admin_allowlist;   -- 본인 이메일 1건
+--
+--   -- 비율이 전부 5의 배수이고 사람별 합이 정확히 100 인지
+--   select person_id, sum(ratio) as total, bool_and(ratio % 5 = 0) as on_grid
+--   from public.person_strength_ratio group by person_id;
+--   -- 게이트가 잠겨 있으면 0행이 나온다. 정상이다
 -- ============================================================

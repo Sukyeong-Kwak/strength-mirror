@@ -15,16 +15,15 @@ npm install
 cp .env.example .env.local     # 값은 아래에서 채운다
 ```
 
-`.env.local` 에 채울 값 4개 (저장소에 없다):
+`.env.local` 에 채울 값 3개 (저장소에 없다):
 
 | 키 | 어디서 얻나 |
 |---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Project Settings → API → Project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 같은 화면의 anon / public 키 |
 | `SUPABASE_PROJECT_ID` | Project Settings → General → Reference ID |
-| `DEVICE_ID_PEPPER` | **이미 DB 에 들어 있다.** SQL Editor 에서 `select public.device_pepper();` 로 꺼내 그대로 붙여넣는다 |
 
-> `DEVICE_ID_PEPPER` 를 새로 만들면 안 된다. 값이 바뀌면 이미 쌓인 `client_hash` 와 매칭되지 않아 기존 제출 이력이 전부 다른 기기로 인식된다.
+> 비밀값은 없다. 세 개 다 대시보드에서 그대로 복사하면 된다.
 
 그다음:
 
@@ -38,7 +37,7 @@ npm run dev
 확인용 명령:
 
 ```bash
-npm test          # Vitest 57개
+npm test          # Vitest 67개
 npm run typecheck # tsc --noEmit
 npm run lint
 ```
@@ -55,7 +54,9 @@ npm run lint
 | 폰트 | Pretendard 가변 woff2 self-host + 고운바탕 `next/font/google` | 외부 CDN 의존 제거 |
 | 테스트 | Vitest만 추가 (Testing Library 미사용) | 순수 함수만 테스트 |
 | 5-4 최다 수신자 표시 | **구현하지 않음** | "특정 인물이 몇 개 받았는지 알 수 없게" 원칙과 충돌 |
-| device pepper | DB 설정값(`current_setting`) 대신 `app_config` 테이블 + `device_pepper()` 접근자 | Supabase 의 postgres 롤은 슈퍼유저가 아니라 커스텀 GUC 를 못 만든다 |
+| 기기 식별 | **쓰지 않는다.** `client_hash`·pepper·`app_config`·`get_my_submissions` 전부 제거 | 식별자가 localStorage 에 있어서 서버에 물어도 얻는 게 없었다. 중복 점검 화면 하나를 포기하고 pepper 관리 부담을 없앤다 |
+| 중복 제출 방지 | `submission_key` (클라이언트가 만드는 멱등 키) | 기기 식별과 무관하다. 두 번 눌러도 한 번만 저장된다 |
+| "이전에 남김" 표시 | localStorage (`via:submitted:v1`) | 서버에 제출자 식별값을 남기지 않는다 |
 | 비율 눈금 | **5% 단위.** 20칸 위에서 최대잔여법 | 1% 로 내려주면 건수를 역산할 수 있다 (8% = 12건 중 1건) |
 | 5% 눈금과 합계 | 각자 반올림하지 않는다. 20칸 최대잔여법으로 **합계 정확히 100** | 각자 반올림하면 합이 95~105 로 흩어져 덕목별 보기 소계가 어긋난다 |
 | 5% 미만 강점 | 막대 대신 이름만 "이런 강점도 받았어요" 로 | 누군가 골라준 강점이 화면에서 흔적도 없이 사라지지 않게 |
@@ -73,19 +74,18 @@ npm run lint
 | 단계 | 내용 | 상태 |
 |---|---|---|
 | 1 | 셋업 (Next 16, TS strict, 덕목 색·서체) | 완료 |
-| 2 | DB 스키마 (테이블 7 · 뷰 11 · RPC 2 · RLS) | 완료 · **재실행 필요** (트리거 + 5% 눈금) |
+| 2 | DB 스키마 (테이블 6 · 뷰 11 · RPC 1 · RLS) | 완료 · **재실행 필요** (아래 4-1) |
 | 3 | 타입 생성 + Supabase 클라이언트 | 완료 |
 | 4 | 관리자 인증 (OTP 전용) + 리뷰 반영 | 완료 |
 | 5 | 명단 파서 `parsePeople.ts` | 완료 (테스트 27) |
 | 6 | 명단 일괄 등록 화면 `/admin/people/import` | 미착수 |
-| 7 | 클라이언트 ID (`clientId.ts`, `get_my_submissions`) | 미착수 |
+| 7 | 제출 이력 localStorage (`submitted.ts`) | 미착수 |
 | 8 | 홈 (조 필터·검색·사람 목록) | 미착수 |
 | 9 | 조 참여 흐름 (내 조, 진행 카드) | 미착수 |
 | 10 | 강점 등록 폼 (3단계 + 확인 다이얼로그) | 미착수 |
 | 11 | 차트 컴포넌트 (`RatioBar` 등) | `ratio.ts` + 테스트만 완료 (5% 눈금 반영됨) |
 | 12 | 개인 결과 페이지 | 미착수 |
 | 13 | 전체 통계 페이지 | 미착수 |
-| 13-1 | 중복 점검 `/admin/duplicates` | 미착수 |
 | 14 | 모바일 QA → 태블릿 확장 | 미착수 |
 | 15 | README + Vercel 배포 | 미착수 |
 
@@ -106,19 +106,42 @@ npm run lint
 
 - 마지막 관리자 보호 트리거 (`prevent_last_admin_delete`)
 - **비율 뷰 6개의 5% 눈금** — 지금 DB 에 있는 뷰는 아직 1% 단위다
+- **기기 식별 제거** — `client_hash` 컬럼, `app_config`, `device_pepper()`,
+  `get_my_submissions()` 를 걷어낸다
 
-실행 전에 `PASTE_DEVICE_ID_PEPPER_HERE` 를 실제 값으로 바꿀 것.
-이미 값이 있으면 덮어쓰지 않으므로 재실행은 안전하다.
+채워 넣을 값은 없다. 파일 전체를 붙여넣고 그대로 실행하면 된다.
+
+> 재실행이 **반드시** 필요하다. 기존 DB 에는 `client_hash` 가 `not null` 로
+> 남아 있어서, 새 `submit_feedback` 이 그 컬럼 없이 INSERT 하면 실패한다.
+> 스키마 1-1 절이 이것을 정리한다.
 
 재실행 뒤 확인:
 
 ```sql
--- 전부 5의 배수여야 하고, 사람별 합이 정확히 100 이어야 한다
+-- 기기 식별 흔적이 없어야 한다 (셋 다 0행)
+select 1 from information_schema.columns
+ where table_name = 'feedbacks' and column_name = 'client_hash';
+select 1 from information_schema.tables where table_name = 'app_config';
+select 1 from information_schema.routines
+ where routine_name in ('device_pepper', 'get_my_submissions');
+
+-- 비율이 전부 5의 배수이고 사람별 합이 정확히 100 인지
 select person_id, sum(ratio), bool_and(ratio % 5 = 0)
 from public.person_strength_ratio group by person_id;
 ```
 
-> 게이트가 잠겨 있으면(5개 미만인 사람이 있으면) 행이 0개로 나온다. 정상이다.
+> 마지막 쿼리는 게이트가 잠겨 있으면(5개 미만인 사람이 있으면) 0행이다. 정상이다.
+
+재실행 뒤 **타입을 다시 뽑아야 한다.** 지금 `src/types/database.ts` 에는
+지워진 `device_pepper` · `get_my_submissions` 와 옛 `submit_feedback` 시그니처가
+그대로 남아 있다 (생성물이라 손으로 고치지 않는다).
+
+```bash
+npm run gen:types && npm run typecheck
+```
+
+10단계(제출 폼)에서 `submit_feedback` 을 부르기 전까지는 타입이 낡아도
+빌드가 깨지지 않지만, 그전에 맞춰두는 편이 낫다.
 
 ### 4-2. 6단계 — 명단 일괄 등록 `/admin/people/import`
 
@@ -129,13 +152,13 @@ from public.person_strength_ratio group by person_id;
 
 | 단계 | 내용 |
 |---|---|
-| 7 | 클라이언트 ID (`clientId.ts`, `get_my_submissions`) |
+| 7 | 제출 이력 localStorage (`submitted.ts`) |
 | 8 | 홈 — 조 필터·검색·사람 목록 |
 | 9 | 조 참여 흐름 (내 조, 진행 카드) |
 | 10 | 강점 등록 폼 (3단계 + 확인 다이얼로그) |
 | 11 | 차트 컴포넌트 — `splitByVisibility()` 로 0% 는 이름만 |
 | 12 | 개인 결과 페이지 |
-| 13 | 전체 통계 · 13-1 중복 점검 |
+| 13 | 전체 통계 |
 | 14 | 모바일 QA → 태블릿 |
 | 15 | README + Vercel 배포 |
 
@@ -150,9 +173,8 @@ from public.person_strength_ratio group by person_id;
 ### Supabase
 
 - [x] `supabase/schema.sql` 실행
-- [ ] **스키마 재실행** — 마지막 관리자 보호 트리거 + 비율 뷰 5% 눈금.
-      실행 전에 `PASTE_DEVICE_ID_PEPPER_HERE` 를 실제 값으로 바꿀 것.
-      이미 값이 있으면 덮어쓰지 않으므로 재실행은 안전하다 (4-1 참고)
+- [ ] **스키마 재실행 (필수)** — 트리거 + 5% 눈금 + 기기 식별 제거.
+      채워 넣을 값은 없다. 자세한 내용과 확인 쿼리는 4-1 참고
 - [ ] Authentication → Providers → **Email** 켜기, Google 은 끈 채로 둔다
 - [ ] Authentication → Providers → Email → **Confirm email** 켜져 있는지 확인
 - [ ] Authentication → **Secure email change** 켜져 있는지 확인
@@ -181,8 +203,7 @@ from public.person_strength_ratio group by person_id;
       | `NEXT_PUBLIC_SUPABASE_URL` | `.env.local` 과 같은 값 | Production · Preview · Development |
       | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `.env.local` 과 같은 값 | Production · Preview · Development |
 
-      `DEVICE_ID_PEPPER` 와 `SUPABASE_PROJECT_ID` 는 **Vercel 에 넣지 않아도 된다.**
-      해싱은 DB 안에서 하고, project id 는 로컬 타입 생성에만 쓴다
+      `SUPABASE_PROJECT_ID` 는 **Vercel 에 넣지 않아도 된다.** 로컬 타입 생성에만 쓴다
 - [ ] 배포 후 Supabase → Authentication → URL Configuration 에 실제 주소와
       프리뷰 주소(`https://*-<계정>.vercel.app/**`) 추가
 
@@ -192,15 +213,14 @@ from public.person_strength_ratio group by person_id;
 
 - [ ] **홈 화면의 앱 이름과 안내 문구.** 지금은 "강점 남기기" 라는 임시 문구다
 - [ ] **파비콘과 OG 이미지** — 6-1 은 덕목 6색 띠를 쓰라고 한다. 만들 시점 미정
-- [ ] **`/admin/duplicates` 의 기기 라벨 표기** — `기기 A` / `기기 B` 를 어떤 순서로 매길지
-      (제출 시각 순으로 하면 될 듯하나 확정 필요)
 - [ ] 실제 사용 일정 — 언제 쓰는 모임인지에 따라 14단계 QA 범위가 달라진다
 
 ---
 
 ## 7. 참고
 
-- 저장소에 **실제 pepper 나 키를 커밋하지 말 것.** `supabase/schema.sql` 의 pepper 는 항상 자리표시자로 둔다
+- `supabase/schema.sql` 에 채워 넣을 비밀값은 없다. 붙여넣고 그대로 실행하면 된다
 - `src/types/database.ts` 는 생성물이다. 손으로 고치지 말고 `npm run gen:types` 를 쓴다
-- 관리자 Server Action 은 전부 첫 줄에서 `assertAdmin()` 을 부른다
+- 관리자 화면의 조회는 전부 `lib/auth/dal.ts` 를 거친다. 페이지에서 Supabase 를 직접 부르지 않는다
+- Server Action 은 첫 줄에서 권한을 확인하되 던지지 말고 `ActionResult` 로 돌려준다
 - `SUPABASE_SERVICE_ROLE_KEY` 는 이 앱에서 쓰지 않는다. `lib/supabase/admin.ts` 를 만들지 말 것
