@@ -5,6 +5,21 @@ Supabase 대시보드에 붙여넣는 HTML 이다. 코드가 읽지 않는다.
 
 ## otp-code.html — 관리자 로그인 번호
 
+### 어느 템플릿에 넣나 — 여기서 가장 많이 헷갈린다
+
+> **Magic Link** 에 넣는다. Confirm signup 이 아니다.
+
+로그인은 `signInWithOtp()` 로 한다. 이미 **확인된** 계정이면 Supabase 는
+**Magic Link** 템플릿을 쓴다. 이름은 링크지만 본문에 `{{ .Token }}` 을 넣으면
+6자리 번호가 나간다.
+
+Confirm signup 은 계정이 **아직 확인되지 않았을 때만** 쓰인다.
+`Add user` 에서 `Auto Confirm User` 를 켜고 만들었다면 이 템플릿은 나가지 않는다.
+
+**두 곳 모두에 넣어두는 것을 권한다.** 계정이 어느 상태든 같은 메일이 간다.
+받은 메일이 `Your sign-in link` 였다면 Magic Link 가 나간 것이므로,
+그 템플릿을 고쳐야 화면이 바뀐다.
+
 붙여넣는 곳: **Authentication → Emails → Templates → Magic Link**
 
 | 항목 | 값 |
