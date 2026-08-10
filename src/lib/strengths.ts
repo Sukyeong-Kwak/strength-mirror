@@ -319,9 +319,13 @@ export type VirtueMeta = {
   nameEn: string;
   /** 막대·세로 인디케이터용 배경 클래스 */
   barClass: string;
-  /** 칩·뱃지용 (배경 + 글자색 + 경계선) */
+  /**
+   * 칩·뱃지용 (배경 + 글자색 + 경계선).
+   * 색을 채우고 흰 글자를 얹으면 절제처럼 대비가 2.9:1 밖에 안 나오는 색이 생긴다.
+   * 그래서 흰 배경에 진한 색 글자와 색 경계선으로 간다.
+   */
   chipClass: string;
-  /** 덕목명 텍스트 색 */
+  /** 덕목명 텍스트 색. 막대 색이 아니라 글자용(-ink) 을 쓴다 */
   textClass: string;
   order: number;
 };
@@ -335,48 +339,48 @@ export const VIRTUE_META: Record<VirtueCode, VirtueMeta> = {
     nameKo: "지혜와 지식",
     nameEn: "Wisdom & Knowledge",
     barClass: "bg-virtue-wisdom",
-    chipClass: "bg-virtue-wisdom text-white border-virtue-wisdom",
-    textClass: "text-virtue-wisdom",
+    chipClass: "bg-surface text-virtue-wisdom-ink border-virtue-wisdom",
+    textClass: "text-virtue-wisdom-ink",
     order: 1,
   },
   courage: {
     nameKo: "용기",
     nameEn: "Courage",
     barClass: "bg-virtue-courage",
-    chipClass: "bg-virtue-courage text-white border-virtue-courage",
-    textClass: "text-virtue-courage",
+    chipClass: "bg-surface text-virtue-courage-ink border-virtue-courage",
+    textClass: "text-virtue-courage-ink",
     order: 2,
   },
   humanity: {
     nameKo: "인간애",
     nameEn: "Humanity",
     barClass: "bg-virtue-humanity",
-    chipClass: "bg-virtue-humanity text-white border-virtue-humanity",
-    textClass: "text-virtue-humanity",
+    chipClass: "bg-surface text-virtue-humanity-ink border-virtue-humanity",
+    textClass: "text-virtue-humanity-ink",
     order: 3,
   },
   justice: {
     nameKo: "정의",
     nameEn: "Justice",
     barClass: "bg-virtue-justice",
-    chipClass: "bg-virtue-justice text-white border-virtue-justice",
-    textClass: "text-virtue-justice",
+    chipClass: "bg-surface text-virtue-justice-ink border-virtue-justice",
+    textClass: "text-virtue-justice-ink",
     order: 4,
   },
   temperance: {
     nameKo: "절제",
     nameEn: "Temperance",
     barClass: "bg-virtue-temperance",
-    chipClass: "bg-virtue-temperance text-white border-virtue-temperance",
-    textClass: "text-virtue-temperance",
+    chipClass: "bg-surface text-virtue-temperance-ink border-virtue-temperance",
+    textClass: "text-virtue-temperance-ink",
     order: 5,
   },
   transcendence: {
     nameKo: "초월",
     nameEn: "Transcendence",
     barClass: "bg-virtue-transcendence",
-    chipClass: "bg-virtue-transcendence text-white border-virtue-transcendence",
-    textClass: "text-virtue-transcendence",
+    chipClass: "bg-surface text-virtue-transcendence-ink border-virtue-transcendence",
+    textClass: "text-virtue-transcendence-ink",
     order: 6,
   },
 };

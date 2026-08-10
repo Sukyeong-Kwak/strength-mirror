@@ -197,7 +197,7 @@ export function LoginPanel({ next, initialError }: LoginPanelProps) {
       {error !== null && (
         <p
           role="alert"
-          className="rounded-base border border-line bg-surface px-4 py-3 text-sm text-virtue-courage"
+          className="rounded-base border border-line bg-surface px-4 py-3 text-sm text-virtue-courage-ink"
         >
           {error}
         </p>

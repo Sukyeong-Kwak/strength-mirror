@@ -36,7 +36,7 @@ export default async function HomePage() {
 
       {/* Postgres 오류 원문에는 테이블·정책 이름이 들어 있다. 화면에 싣지 않는다 */}
       {error !== null && (
-        <p className="mt-4 rounded-base border border-line bg-surface px-4 py-3 text-sm text-virtue-courage">
+        <p className="mt-4 rounded-base border border-line bg-surface px-4 py-3 text-sm text-virtue-courage-ink">
           지금은 불러올 수 없어요. 잠시 뒤에 다시 열어주세요.
         </p>
       )}

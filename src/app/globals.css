@@ -1,30 +1,58 @@
 @import "tailwindcss";
 
 @theme {
-  /* 덕목 6색 — 이 앱의 유일한 색 체계 (6-2). 별도 브랜드 컬러를 만들지 말 것 */
-  --color-virtue-wisdom: #1f6f6b;
-  --color-virtue-courage: #bf4a36;
-  --color-virtue-humanity: #c0567f;
-  --color-virtue-justice: #2e4a87;
-  --color-virtue-temperance: #5e7c4f;
-  --color-virtue-transcendence: #7a5aa8;
+  /*
+   * 덕목 6색 — 이 앱의 유일한 색 체계 (6-2). 별도 브랜드 컬러를 만들지 말 것.
+   *
+   * 눈으로 고르지 않고 흰 배경 기준으로 계산해서 뽑았다.
+   * 덕목 순서(지혜→용기→인간애→정의→절제→초월)가 고정이라
+   * 이웃한 두 색이 반드시 구분돼야 한다. 검사 결과:
+   *   밝기 범위 통과 · 채도 통과
+   *   색약 구분  최악 이웃 ΔE 8.2 (deutan, 목표 8 이상)
+   *   정상 시력  최악 이웃 ΔE 19.6 (하한 15 이상)
+   *   흰 배경 대비  절제(2.90:1)만 3:1 미만 → 막대 옆 이름·퍼센트 라벨로 보완
+   *
+   * 색을 바꾸면 이 검사를 다시 돌려야 한다. 이전 팔레트는 인간애와 용기가
+   * ΔE 9.4 로 정상 시력에서도 구분이 어려웠다.
+   */
+  --color-virtue-wisdom: #2457fc;
+  --color-virtue-courage: #cf1001;
+  --color-virtue-humanity: #f72fa7;
+  --color-virtue-justice: #9e3bed;
+  --color-virtue-temperance: #00af50;
+  --color-virtue-transcendence: #9e7108;
 
-  /* 중립색 */
-  --color-page: #fbfaf8;
+  /*
+   * 글자용 덕목 색.
+   *
+   * 위 색은 막대를 채우는 용도라 글자로 쓰면 흐리다.
+   * 절제(#00af50)는 흰 배경에서 2.90:1 이라 글자로 읽을 수 없다.
+   * 색상각은 그대로 두고 흰 배경에서 5:1 을 넘도록 어둡게만 내렸다.
+   * 지혜·용기는 이미 넘어서 같은 값을 쓴다.
+   */
+  --color-virtue-wisdom-ink: #2457fc;
+  --color-virtue-courage-ink: #cf1001;
+  --color-virtue-humanity-ink: #d2058a;
+  --color-virtue-justice-ink: #972efe;
+  --color-virtue-temperance-ink: #028039;
+  --color-virtue-transcendence-ink: #96650a;
+
+  /* 중립색 — 따뜻한 미색을 걷어내고 흰 배경에 맞춘 회색 계열 */
+  --color-page: #f6f7f9;
   --color-surface: #ffffff;
-  --color-ink: #1a1a18;
-  --color-muted: #6e6e68;
-  --color-line: #e4e2dc;
+  --color-ink: #101114;
+  --color-muted: #565e6b;
+  --color-line: #d7dbe2;
   /* 경고 — 관리자 화면의 미달 표시 전용. 덕목 색과 겹치지 않게 */
-  --color-warn: #8a6d1f;
-  --color-warn-surface: #fdf6e3;
+  --color-warn: #9a3412;
+  --color-warn-surface: #fff7ed;
 
   /* 형태 — 모서리 반경 6px 고정 (6-4) */
   --radius-base: 6px;
 
   /* 서체 두 벌 (6-3) */
   --font-sans: var(--font-pretendard), system-ui, sans-serif;
-  --font-display: var(--font-hahmlet), var(--font-pretendard), serif;
+  --font-display: var(--font-do-hyeon), var(--font-pretendard), sans-serif;
 }
 
 /*
@@ -37,18 +65,17 @@
  */
 h1 {
   font-family: var(--font-display);
-  /* 가변 축이라 굵기를 골라 쓴다. 제목은 존재감이 있어야 한다 */
-  font-weight: 600;
-  /* 세리프는 자간이 넓어 보인다. 제목만 살짝 좁힌다 */
   letter-spacing: -0.01em;
 }
 
 /*
- * 사람 이름과 강점 이름 (6-3).
- * 표 안 14px 에서도 또렷하도록 본문보다 한 단계 굵게 쓴다.
+ * 도현체는 굵기가 400 한 벌뿐이다.
+ * font-bold 를 붙이면 브라우저가 없는 굵기를 억지로 만들어 획이 뭉개진다.
+ * 표제 서체를 쓰는 곳에는 굵기를 올리지 않는다.
  */
+h1,
 .font-display {
-  font-weight: 500;
+  font-weight: 400;
 }
 
 /* 폰트 로딩 전에도 레이아웃이 흔들리지 않게 */
