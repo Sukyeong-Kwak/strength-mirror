@@ -24,7 +24,31 @@
 
   /* 서체 두 벌 (6-3) */
   --font-sans: var(--font-pretendard), system-ui, sans-serif;
-  --font-display: var(--font-gowun-batang), serif;
+  --font-display: var(--font-hahmlet), var(--font-pretendard), serif;
+}
+
+/*
+ * 화면 제목(h1)은 표제 서체로 통일한다.
+ * 컴포넌트마다 손으로 붙이면 새 화면에서 빠뜨린다.
+ *
+ * h2 는 제외한다. 이 앱의 h2 는 대부분 14px 짜리 작은 섹션 라벨이라
+ * 표제 서체를 씌우면 오히려 위계가 흐려진다.
+ * 큰 제목이 필요하면 font-display 를 직접 붙인다.
+ */
+h1 {
+  font-family: var(--font-display);
+  /* 가변 축이라 굵기를 골라 쓴다. 제목은 존재감이 있어야 한다 */
+  font-weight: 600;
+  /* 세리프는 자간이 넓어 보인다. 제목만 살짝 좁힌다 */
+  letter-spacing: -0.01em;
+}
+
+/*
+ * 사람 이름과 강점 이름 (6-3).
+ * 표 안 14px 에서도 또렷하도록 본문보다 한 단계 굵게 쓴다.
+ */
+.font-display {
+  font-weight: 500;
 }
 
 /* 폰트 로딩 전에도 레이아웃이 흔들리지 않게 */

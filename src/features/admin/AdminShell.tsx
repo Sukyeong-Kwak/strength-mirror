@@ -42,8 +42,8 @@ export function AdminShell({
         </Link>
       )}
 
-      {/* 고운바탕은 사람 이름과 강점 이름에만 쓴다 (6-3) */}
-      <h1 className="mt-4 text-2xl font-bold">{title}</h1>
+      {/* 표제 서체는 globals.css 의 h1 규칙이 붙인다 */}
+      <h1 className="mt-4 text-2xl">{title}</h1>
 
       {children}
     </div>

@@ -14,7 +14,7 @@ export default async function HomePage() {
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-10">
-      <h1 className="text-2xl font-bold">강점 남기기</h1>
+      <h1 className="text-2xl">강점 남기기</h1>
       <p className="mt-2 text-sm text-muted">
         준비 중인 화면이에요. 곧 사람 목록으로 바뀌어요.
       </p>

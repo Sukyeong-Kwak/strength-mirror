@@ -26,7 +26,7 @@ export default function ErrorPage({ error, retry }: ErrorPageProps) {
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-12">
-      <h1 className="text-2xl font-bold">잠시 문제가 생겼어요</h1>
+      <h1 className="text-2xl">잠시 문제가 생겼어요</h1>
       <p className="mt-2 text-sm text-muted">
         다시 눌러보시고, 계속 이러면 잠시 뒤에 열어주세요.
       </p>

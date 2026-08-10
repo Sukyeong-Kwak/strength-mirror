@@ -51,7 +51,10 @@ npm run lint
 | 항목 | 결정 | 이유 |
 |---|---|---|
 | Tailwind | v4 (`@theme` 블록이 설정 위치, `tailwind.config.ts` 없음) | create-next-app 기본값 |
-| 폰트 | Pretendard 가변 woff2 self-host + 고운바탕 `next/font/google` | 외부 CDN 의존 제거 |
+| 폰트 | 본문 Pretendard(가변 woff2 self-host) + 표제 **Hahmlet**(`next/font/google`) | 외부 CDN 의존 제거. 빌드 때 받아 함께 배포한다 |
+| 표제 서체 선택 | 간판체(도현체·한나체 등)를 쓰지 않는다 | 6-4 의 평면적인 종이 화면과 겉돈다. 굵기도 한 벌뿐이라 위계를 못 만든다 |
+| 표제 서체 적용 범위 | **h1 제목(600) + 사람·강점 이름(500).** 명세 6-3 을 넓혔다 | 이름에만 쓰니 존재감이 없어 화면 전체가 한 글꼴처럼 밋밋했다 |
+| h2 | 표제 서체를 쓰지 않는다 | 대부분 14px 섹션 라벨이라 씌우면 위계가 흐려진다 |
 | 테스트 | Vitest만 추가 (Testing Library 미사용) | 순수 함수만 테스트 |
 | 5-4 최다 수신자 표시 | **구현하지 않음** | "특정 인물이 몇 개 받았는지 알 수 없게" 원칙과 충돌 |
 | 기기 식별 | **쓰지 않는다.** `client_hash`·pepper·`app_config`·`get_my_submissions` 전부 제거 | 식별자가 localStorage 에 있어서 서버에 물어도 얻는 게 없었다. 중복 점검 화면 하나를 포기하고 pepper 관리 부담을 없앤다 |

@@ -38,7 +38,7 @@ export default async function AdminLoginPage({ searchParams }: LoginPageProps) {
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-12">
-      <h1 className="text-2xl font-bold">관리자 로그인</h1>
+      <h1 className="text-2xl">관리자 로그인</h1>
       <p className="mt-2 text-sm text-muted">
         명단 등록과 현황 확인은 관리자만 할 수 있어요.
       </p>
