@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { buttonClass } from "@/components/Button";
 import { StrengthBoard } from "@/features/feedback/StrengthBoard";
 import { getPerson } from "@/lib/data/people";
 import { toGroupLabel } from "@/lib/groups";
@@ -35,14 +36,11 @@ export default async function PersonPage({ params }: PersonPageProps) {
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-6">
-      <Link
-        href="/"
-        className="inline-block min-h-11 py-3 text-sm text-muted underline underline-offset-4"
-      >
+      <Link href="/" className={buttonClass()}>
         명단으로
       </Link>
 
-      <h1 className="mt-2 text-2xl">{person.name}</h1>
+      <h1 className="mt-4 text-2xl">{person.name}</h1>
       <p className="mt-1 text-sm text-muted">{toGroupLabel(person.groupName)}</p>
 
       <StrengthBoard person={person} />

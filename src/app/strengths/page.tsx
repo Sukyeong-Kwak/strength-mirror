@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { buttonClass } from "@/components/Button";
 import { StrengthBody } from "@/features/strengths/StrengthBody";
 import { STRENGTHS_BY_VIRTUE } from "@/lib/strengths";
 
@@ -17,14 +18,11 @@ export const metadata: Metadata = {
 export default function StrengthsPage() {
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-10">
-      <Link
-        href="/"
-        className="inline-block min-h-11 py-3 text-sm text-muted underline underline-offset-4"
-      >
+      <Link href="/" className={buttonClass()}>
         명단으로
       </Link>
 
-      <h1 className="mt-2 text-2xl">24가지 강점</h1>
+      <h1 className="mt-4 text-2xl">24가지 강점</h1>
       <p className="mt-2 text-sm text-muted">
         여섯 덕목으로 묶여 있어요. 무엇을 고를지 헷갈릴 때 읽어보세요.
       </p>

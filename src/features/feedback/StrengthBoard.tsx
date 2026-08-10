@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useRef, useState, useTransition } from "react";
 
 import { submitFeedback } from "@/actions/submitFeedback";
-import { Button } from "@/components/Button";
+import { Button, buttonClass } from "@/components/Button";
 import { Sheet } from "@/components/Sheet";
 import { StrengthInfo } from "@/features/strengths/StrengthInfo";
 import {
@@ -292,10 +292,7 @@ export function StrengthBoard({ person }: StrengthBoardProps) {
             <Button variant="secondary" onClick={() => setSaved(null)} block>
               더 남기기
             </Button>
-            <Link
-              href="/"
-              className="inline-flex min-h-11 w-full items-center justify-center rounded-base border border-ink bg-ink px-4 text-base text-surface"
-            >
+            <Link href="/" className={buttonClass("primary", true)}>
               명단으로
             </Link>
           </div>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { buttonClass } from "@/components/Button";
 import { PeopleBrowser } from "@/features/home/PeopleBrowser";
 import { listPeople } from "@/lib/data/people";
 
@@ -18,10 +19,7 @@ export default async function HomePage() {
       </div>
 
       <div className="mt-10 border-t border-line pt-6">
-        <Link
-          href="/strengths"
-          className="inline-block min-h-11 py-3 text-sm text-muted underline underline-offset-4"
-        >
+        <Link href="/strengths" className={buttonClass()}>
           24가지 강점이 무엇인지 보기
         </Link>
       </div>
