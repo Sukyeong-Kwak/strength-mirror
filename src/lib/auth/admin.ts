@@ -17,6 +17,9 @@ type Client = SupabaseClient<Database>;
  *
  * admin_allowlist 는 is_admin() 정책으로 보호돼 있어서,
  * 허용목록에 없는 계정이 조회하면 행이 하나도 오지 않는다.
+ *
+ * 화면과 조회에서는 이것을 직접 부르지 말고 lib/auth/dal 의 함수를 쓴다.
+ * 확인과 조회가 떨어져 있으면 새 화면에서 확인을 빠뜨리게 된다.
  */
 export async function getAdminSession(): Promise<AdminSession | null> {
   const supabase = await createSupabaseServerClient();
@@ -41,19 +44,6 @@ export async function getAdminSession(): Promise<AdminSession | null> {
   }
 
   return { email: data.email, label: data.label };
-}
-
-/**
- * 관리자 Server Action 의 첫 줄에서 호출한다.
- * 미들웨어는 Server Action 을 우회할 수 있으므로 여기서 한 번 더 막는다.
- * 최종 방어선은 RLS 지만, 앱에서도 막아야 명확한 메시지를 줄 수 있다.
- */
-export async function assertAdmin(): Promise<AdminSession> {
-  const session = await getAdminSession();
-  if (session === null) {
-    throw new Error("관리자만 쓸 수 있어요");
-  }
-  return session;
 }
 
 /** 표시용 이름. label 이 없으면 이메일을 쓴다 */

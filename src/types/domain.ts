@@ -5,6 +5,8 @@
  * DB 응답을 화면에서 쓰기 좋은 형태로 좁힌 타입만 여기에 둔다.
  */
 
+import type { Database } from "@/types/database";
+
 import type { StrengthCode, VirtueCode, VirtueMeta } from "@/lib/strengths";
 
 /** Server Action 반환값은 전부 이 형태로 통일한다 */
@@ -111,6 +113,31 @@ export type AdminAction = (typeof ADMIN_ACTIONS)[number];
 export function isAdminAction(value: unknown): value is AdminAction {
   return typeof value === "string" && ADMIN_ACTIONS.some((a) => a === value);
 }
+
+/** 활동 기록의 detail 은 jsonb 라 무엇이든 올 수 있다 */
+export type AdminActivityDetail =
+  Database["public"]["Tables"]["admin_audit_log"]["Row"]["detail"];
+
+/** 관리자 활동 기록 한 줄 */
+export type AdminActivity = {
+  id: number;
+  adminEmail: string;
+  action: AdminAction;
+  detail: AdminActivityDetail;
+  createdAt: string;
+};
+
+/** 허용목록 한 줄 */
+export type AdminEntry = {
+  email: string;
+  label: string | null;
+  addedBy: string | null;
+  /**
+   * 서버에서 만든 상대 시간.
+   * 클라이언트에서 계산하면 서버 렌더 결과와 어긋나 하이드레이션이 깨진다.
+   */
+  addedAtLabel: string;
+};
 
 /** 제출 폼이 서버로 보내는 항목 */
 export type FeedbackItemInput = {

@@ -5,19 +5,14 @@ import { useState, useTransition } from "react";
 
 import { addAdmin, removeAdmin } from "@/actions/admin/manageAdmins";
 import { Button } from "@/components/Button";
-import { formatRelativeTime } from "@/lib/time";
-
-export type AdminEntry = {
-  email: string;
-  label: string | null;
-  addedBy: string | null;
-  createdAt: string;
-};
+import type { AdminEntry } from "@/types/domain";
 
 type AdminAllowlistProps = {
   entries: readonly AdminEntry[];
   currentEmail: string;
 };
+
+const FAILED_NOTICE = "처리하지 못했어요. 잠시 뒤 다시 눌러주세요";
 
 export function AdminAllowlist({ entries, currentEmail }: AdminAllowlistProps) {
   const router = useRouter();
@@ -34,15 +29,21 @@ export function AdminAllowlist({ entries, currentEmail }: AdminAllowlistProps) {
     setError(null);
     setNotice(null);
     startTransition(async () => {
-      const result = await addAdmin({ email, label: label.trim() });
-      if (!result.ok) {
-        setError(result.error);
-        return;
+      // startTransition 안에서 던지면 에러 바운더리까지 올라가 화면이 통째로 바뀐다.
+      // 관리자 관리 화면은 그대로 두고 문구로 알린다
+      try {
+        const result = await addAdmin({ email, label: label.trim() });
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        setEmail("");
+        setLabel("");
+        setNotice(`${result.data.email}을 추가했어요`);
+        router.refresh();
+      } catch {
+        setError(FAILED_NOTICE);
       }
-      setEmail("");
-      setLabel("");
-      setNotice(`${result.data.email}을 추가했습니다`);
-      router.refresh();
     });
   }
 
@@ -50,23 +51,33 @@ export function AdminAllowlist({ entries, currentEmail }: AdminAllowlistProps) {
     setError(null);
     setNotice(null);
     startTransition(async () => {
-      const result = await removeAdmin({ email: target });
-      if (!result.ok) {
-        setError(result.error);
-        return;
+      try {
+        const result = await removeAdmin({ email: target });
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        setConfirming(null);
+        setNotice(`${target}을 제거했어요`);
+        router.refresh();
+      } catch {
+        setError(FAILED_NOTICE);
       }
-      setConfirming(null);
-      setNotice(`${target}을 제거했습니다`);
-      router.refresh();
     });
   }
 
   return (
     <div className="mt-6 space-y-6">
-      <section className="rounded-base border border-line bg-surface p-4">
+      <form
+        className="rounded-base border border-line bg-surface p-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          submitAdd();
+        }}
+      >
         <h2 className="text-sm text-muted">관리자 추가</h2>
         <p className="mt-1 text-sm text-muted">
-          추가하면 재배포 없이 바로 로그인할 수 있어요.
+          추가하면 그 주소로 바로 로그인할 수 있어요.
         </p>
 
         <label className="mt-3 block text-sm text-muted" htmlFor="new-admin-email">
@@ -76,6 +87,7 @@ export function AdminAllowlist({ entries, currentEmail }: AdminAllowlistProps) {
           id="new-admin-email"
           type="email"
           inputMode="email"
+          autoComplete="off"
           value={email}
           disabled={pending}
           onChange={(event) => setEmail(event.target.value)}
@@ -95,11 +107,11 @@ export function AdminAllowlist({ entries, currentEmail }: AdminAllowlistProps) {
         />
 
         <div className="mt-4">
-          <Button block disabled={pending} onClick={submitAdd}>
+          <Button block type="submit" disabled={pending}>
             추가
           </Button>
         </div>
-      </section>
+      </form>
 
       {error !== null && (
         <p
@@ -130,7 +142,7 @@ export function AdminAllowlist({ entries, currentEmail }: AdminAllowlistProps) {
                       ? "최초 등록"
                       : `${entry.addedBy}이 추가`}
                     {" · "}
-                    {formatRelativeTime(entry.createdAt)}
+                    {entry.addedAtLabel}
                   </p>
                 </div>
 
@@ -150,7 +162,7 @@ export function AdminAllowlist({ entries, currentEmail }: AdminAllowlistProps) {
                   <p className="text-sm">
                     {entry.email === currentEmail
                       ? "본인 계정이에요. 제거하면 바로 접근할 수 없어요"
-                      : "제거하면 다음 요청부터 접근할 수 없어요"}
+                      : "제거하면 이 주소로는 더 들어올 수 없어요"}
                   </p>
                   <div className="mt-3 flex gap-2">
                     <Button
@@ -158,7 +170,7 @@ export function AdminAllowlist({ entries, currentEmail }: AdminAllowlistProps) {
                       disabled={pending}
                       onClick={() => setConfirming(null)}
                     >
-                      돌아가기
+                      그대로 두기
                     </Button>
                     <Button
                       disabled={pending}

@@ -14,9 +14,9 @@ export default async function HomePage() {
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-10">
-      <h1 className="font-display text-2xl font-bold">강점 남기기</h1>
+      <h1 className="text-2xl font-bold">강점 남기기</h1>
       <p className="mt-2 text-sm text-muted">
-        준비 중인 화면이에요. 8단계에서 사람 목록으로 바뀝니다.
+        준비 중인 화면이에요. 곧 사람 목록으로 바뀌어요.
       </p>
 
       <dl className="mt-6 divide-y divide-line rounded-base border border-line bg-surface text-sm">
@@ -34,9 +34,10 @@ export default async function HomePage() {
         </div>
       </dl>
 
+      {/* Postgres 오류 원문에는 테이블·정책 이름이 들어 있다. 화면에 싣지 않는다 */}
       {error !== null && (
         <p className="mt-4 rounded-base border border-line bg-surface px-4 py-3 text-sm text-virtue-courage">
-          연결에 실패했어요. {error.message}
+          지금은 불러올 수 없어요. 잠시 뒤에 다시 열어주세요.
         </p>
       )}
     </main>

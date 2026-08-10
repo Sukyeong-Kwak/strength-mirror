@@ -18,7 +18,7 @@ function isAdminPublicPath(pathname: string): boolean {
  * 세션 쿠키를 갱신하고 /admin/* 접근을 1차로 막는다.
  *
  * 여기서 확인하는 것은 "로그인했는가" 까지다.
- * 관리자인지(허용목록에 있는지)는 assertAdmin() 과 RLS 가 판단한다.
+ * 관리자인지(허용목록에 있는지)는 lib/auth/dal 의 requireAdmin() 과 RLS 가 판단한다.
  * 미들웨어는 Server Action 을 거치지 않으므로 이것만 믿어서는 안 된다.
  */
 export async function updateSession(request: NextRequest): Promise<NextResponse> {

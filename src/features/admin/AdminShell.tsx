@@ -42,7 +42,8 @@ export function AdminShell({
         </Link>
       )}
 
-      <h1 className="mt-4 font-display text-2xl font-bold">{title}</h1>
+      {/* 고운바탕은 사람 이름과 강점 이름에만 쓴다 (6-3) */}
+      <h1 className="mt-4 text-2xl font-bold">{title}</h1>
 
       {children}
     </div>

@@ -1,89 +1,30 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
-import {
-  RecentActivity,
-  type ActivityEntry,
-} from "@/features/admin/RecentActivity";
-import { ReceiptStatusTable } from "@/features/admin/ReceiptStatusTable";
 import { AdminShell } from "@/features/admin/AdminShell";
+import { ReceiptStatusTable } from "@/features/admin/ReceiptStatusTable";
+import { RecentActivity } from "@/features/admin/RecentActivity";
 import { UnlockStatusCard } from "@/features/admin/UnlockStatusCard";
-import { getAdminSession } from "@/lib/auth/admin";
-import { RECENT_ACTIVITY_LIMIT, UNASSIGNED_GROUP_LABEL } from "@/lib/constants";
+import {
+  getAdminDisplayNames,
+  getReceiptTotals,
+  getRecentActivity,
+  getResultsStatus,
+  requireAdmin,
+} from "@/lib/auth/dal";
 import { sortGroupNames } from "@/lib/groups";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { isAdminAction, type PersonTotals } from "@/types/domain";
-
-type PersonTotalsRow = {
-  person_id: string | null;
-  name: string | null;
-  group_name: string | null;
-  created_by: string | null;
-  submission_count: number | null;
-  strength_count: number | null;
-};
-
-/** 뷰는 모든 컬럼이 nullable 로 생성된다. 화면용 타입으로 좁힌다 */
-function toPersonTotals(row: PersonTotalsRow): PersonTotals | null {
-  if (row.person_id === null || row.name === null) {
-    return null;
-  }
-  return {
-    personId: row.person_id,
-    name: row.name,
-    groupName: row.group_name ?? UNASSIGNED_GROUP_LABEL,
-    createdBy: row.created_by,
-    submissionCount: row.submission_count ?? 0,
-    strengthCount: row.strength_count ?? 0,
-  };
-}
 
 export default async function AdminHomePage() {
-  const session = await getAdminSession();
-  if (session === null) {
-    redirect("/admin/login?error=forbidden&next=%2Fadmin");
-  }
+  // 권한 확인을 먼저 끝낸다. 조회와 나란히 두면 미인가일 때
+  // 조회 쪽도 각자 거부되어 처리되지 않은 거부가 남는다.
+  // 확인 결과는 cache() 에 담기므로 아래 조회들은 다시 확인하지 않는다
+  const session = await requireAdmin();
 
-  const supabase = await createSupabaseServerClient();
-
-  const [totalsResult, statusResult, auditResult, allowlistResult] =
-    await Promise.all([
-      supabase
-        .from("person_totals_internal")
-        .select(
-          "person_id, name, group_name, created_by, submission_count, strength_count",
-        ),
-      supabase.from("results_status").select("unlocked, remaining").maybeSingle(),
-      supabase
-        .from("admin_audit_log")
-        .select("id, admin_email, action, detail, created_at")
-        .order("created_at", { ascending: false })
-        .limit(RECENT_ACTIVITY_LIMIT),
-      supabase.from("admin_allowlist").select("email, label"),
-    ]);
-
-  const totals: PersonTotals[] = (totalsResult.data ?? [])
-    .map(toPersonTotals)
-    .filter((row): row is PersonTotals => row !== null);
-
-  const labels = new Map<string, string>(
-    (allowlistResult.data ?? []).map((row) => [row.email, row.label ?? row.email]),
-  );
-
-  // action 은 CHECK 제약이라 생성 타입이 string 이다. 아는 값만 통과시킨다
-  const entries: ActivityEntry[] = (auditResult.data ?? []).flatMap((row) =>
-    isAdminAction(row.action)
-      ? [
-          {
-            id: row.id,
-            adminEmail: row.admin_email,
-            action: row.action,
-            detail: row.detail,
-            createdAt: row.created_at,
-          },
-        ]
-      : [],
-  );
+  const [totals, status, entries, labels] = await Promise.all([
+    getReceiptTotals(),
+    getResultsStatus(),
+    getRecentActivity(),
+    getAdminDisplayNames(),
+  ]);
 
   const groupCounts = new Map<string, number>();
   for (const row of totals) {
@@ -115,12 +56,9 @@ export default async function AdminHomePage() {
         )}
       </section>
 
-      <UnlockStatusCard
-        unlocked={statusResult.data?.unlocked === true}
-        totals={totals}
-      />
+      <UnlockStatusCard unlocked={status.unlocked} totals={totals} />
 
-      <ReceiptStatusTable totals={totals} />
+      <ReceiptStatusTable totals={totals} registrarLabels={labels} />
 
       <RecentActivity entries={entries} labels={labels} />
     </AdminShell>

@@ -29,7 +29,7 @@ export function UnlockStatusCard({ unlocked, totals }: UnlockStatusCardProps) {
     <section className="mt-6 rounded-base border border-line bg-surface p-4">
       <h2 className="text-sm text-muted">결과 공개 상태</h2>
 
-      <p className="mt-1 text-base">
+      <p className={`mt-1 text-base ${unlocked ? "" : "num"}`}>
         {unlocked
           ? "공개됨"
           : `잠김 · ${pending.length}명이 ${MIN_STRENGTHS_PER_PERSON}개 미달`}

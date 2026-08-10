@@ -17,7 +17,7 @@ const BASE =
   "inline-flex min-h-11 items-center justify-center rounded-base border px-4 text-base transition-colors disabled:cursor-not-allowed disabled:opacity-40";
 
 const VARIANT_CLASS: Record<ButtonVariant, string> = {
-  primary: "border-ink bg-ink text-white",
+  primary: "border-ink bg-ink text-surface",
   secondary: "border-line bg-surface text-ink",
   quiet: "border-transparent bg-transparent text-muted",
 };
