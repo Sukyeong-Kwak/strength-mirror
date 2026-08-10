@@ -9,6 +9,15 @@ export const MAX_STRENGTHS_PER_SUBMISSION = 5;
 /** 사유 최소 길이 */
 export const MIN_REASON_LENGTH = 10;
 
+/**
+ * 사유 최대 길이. DB 에는 상한이 없고 화면에서만 막는다.
+ * 결과 화면의 사유 카드가 읽을 만한 길이를 넘지 않게 하려는 것이다
+ */
+export const MAX_REASON_LENGTH = 500;
+
+/** 작성자 이름 최대 길이. DB 의 CHECK 과 같은 값이어야 한다 */
+export const MAX_AUTHOR_NAME_LENGTH = 20;
+
 /** 결과 공개 게이트 — 한 사람이 받아야 할 최소 강점 선택 수 (4장) */
 export const MIN_STRENGTHS_PER_PERSON = 5;
 
@@ -16,16 +25,20 @@ export const MIN_STRENGTHS_PER_PERSON = 5;
 export const UNASSIGNED_GROUP_LABEL = "미지정";
 
 /**
- * localStorage 키 (5-11). 이 세 개로 통일한다.
+ * localStorage 키 (5-11). 이 목록으로 통일한다.
  *
- * submitted 는 이미 강점을 남긴 사람의 id 목록이다.
+ * submitted 는 이 기기가 남긴 (사람, 강점) 목록이다.
  * 서버에 묻지 않는 이유는, 기기를 식별하려면 그 값을 어차피
  * localStorage 에 둬야 하고 그러면 저장소를 지울 때 같이 사라지기 때문이다.
  * 서버에 제출자 식별값을 남기지 않는 편이 낫다.
+ *
+ * authorName 은 직전에 적은 이름이다. 강점을 하나씩 남기는 흐름이라
+ * 매번 다시 적게 하면 결국 아무도 이름을 적지 않는다.
  */
 export const STORAGE_KEYS = {
   submitted: "via:submitted:v1",
   myGroup: "via:myGroup:v1",
+  authorName: "via:authorName:v1",
   draftPrefix: "via:draft:",
 } as const;
 

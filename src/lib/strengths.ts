@@ -302,7 +302,15 @@ export const STRENGTHS = [
   },
 ] as const satisfies readonly StrengthDef[];
 
-export type StrengthCode = (typeof STRENGTHS)[number]["code"];
+/**
+ * STRENGTHS 의 한 항목.
+ *
+ * StrengthDef 와 달리 code 가 좁혀져 있다. 화면에서 고른 강점을 그대로
+ * 제출에 쓰려면 code 가 string 이 아니라 StrengthCode 여야 한다.
+ */
+export type Strength = (typeof STRENGTHS)[number];
+
+export type StrengthCode = Strength["code"];
 
 /**
  * confusableWith 에 존재하지 않는 코드를 적으면 여기서 컴파일 에러가 난다.
@@ -415,7 +423,7 @@ export function getStrength(code: StrengthCode): StrengthDef {
 export const STRENGTHS_BY_VIRTUE: ReadonlyArray<{
   virtue: VirtueCode;
   meta: VirtueMeta;
-  strengths: readonly StrengthDef[];
+  strengths: readonly Strength[];
 }> = VIRTUES.map((virtue) => ({
   virtue,
   meta: VIRTUE_META[virtue],

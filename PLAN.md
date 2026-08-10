@@ -69,6 +69,11 @@ npm run lint
 | 5% 눈금과 합계 | 각자 반올림하지 않는다. 20칸 최대잔여법으로 **합계 정확히 100** | 각자 반올림하면 합이 95~105 로 흩어져 덕목별 보기 소계가 어긋난다 |
 | 5% 미만 강점 | 막대 대신 이름만 "이런 강점도 받았어요" 로 | 누군가 골라준 강점이 화면에서 흔적도 없이 사라지지 않게 |
 | 사유 목록 게이트 | `feedback_reasons_public` 에도 공개 게이트 적용 | 사유 카드 수를 세면 그 사람이 받은 강점 수가 된다 |
+| 제출 단위 | **강점 하나씩 즉시 제출.** 저장 직전에 "고칠 수 없어요" 확인을 한 번 둔다 | 여러 개를 골라두고 마지막에 몰아 쓰게 하면 사유를 쓰다 지쳐 앞의 선택을 지운다 |
+| 작성자 이름 | **익명이 기본, 원하면 이름.** 직전에 적은 이름을 기억한다 | 하나씩 남기는 흐름이라 매번 다시 적게 하면 결국 아무도 적지 않는다 |
+| 이름 찾기 | 부분 일치 + 공백 무시 + **초성 검색**. 전부 브라우저에서 | 명단은 많아야 수백 명이라 글자마다 서버에 묻는 것보다 빠르다 |
+| 참여자 화면 조회 | `lib/data/people.ts` 로 분리. `lib/auth/dal.ts` 를 쓰지 않는다 | 로그인 없이 열리는 화면이다. 섞어두면 언젠가 requireAdmin 이 딸려 들어간다 |
+| 저장소 읽기 | `useSyncExternalStore` (`lib/useLocalStore.ts`) | 효과 안 setState 는 lint 가 막고, 첫 렌더 뒤 화면이 한 번 어긋난다 |
 | 관리자 로그인 | **이메일 인증번호(OTP)만.** Google OAuth 는 쓰지 않는다 | 설정 단계를 줄인다 |
 | OTP 계정 생성 | `shouldCreateUser: false`. 계정은 Supabase 대시보드에서 미리 만든다 | 아무나 코드를 요청해 메일 할당량을 소진시키는 것을 막는다 |
 | 메일 발송 | Resend 커스텀 SMTP | Supabase 기본 SMTP 는 시간당 발송 제한이 매우 낮다 |
@@ -88,17 +93,31 @@ npm run lint
 | 5 | 명단 파서 `parsePeople.ts` | 완료 (테스트 27) |
 | 6 | 명단 일괄 등록 화면 `/admin/people/import` | 완료 |
 | 6-1 | 명단 관리 `/admin/people` — 숨김·삭제 | 완료 |
-| 7 | 제출 이력 localStorage (`submitted.ts`) | 미착수 |
-| 8 | 홈 (조 필터·검색·사람 목록) | 미착수 |
-| 9 | 조 참여 흐름 (내 조, 진행 카드) | 미착수 |
-| 10 | 강점 등록 폼 (3단계 + 확인 다이얼로그) | 미착수 |
+| 7 | 제출 이력 localStorage (`submitted.ts`) | 완료 (테스트 15) |
+| 8 | 홈 (조 필터·검색·사람 목록) | 완료 · 초성 검색 포함 (테스트 9) |
+| 9 | 조 참여 흐름 | 일부 — 마지막에 본 조를 기억한다. 진행 카드는 12단계와 함께 |
+| 10 | 강점 등록 (`/p/[id]`) — 고르기 → 사유 → 확인 → 저장 | 완료 · **하나씩 제출로 바뀜** |
 | 11 | 차트 컴포넌트 (`RatioBar` 등) | `ratio.ts` + 테스트만 완료 (5% 눈금 반영됨) |
 | 12 | 개인 결과 페이지 | 미착수 |
 | 13 | 전체 통계 페이지 | 미착수 |
 | 14 | 모바일 QA → 태블릿 확장 | 미착수 |
 | 15 | README + Vercel 배포 | 미착수 |
 
-이미 만든 순수 함수 라이브러리: `groups.ts`(14) · `ratio.ts`(26) · `parsePeople.ts`(27) — 테스트 67개 통과.
+이미 만든 순수 함수 라이브러리: `groups.ts`(14) · `ratio.ts`(26) · `parsePeople.ts`(27) ·
+`search.ts`(9) · `submitted.ts`(15) — 테스트 91개 통과.
+
+참여자 화면 파일:
+
+| 파일 | 하는 일 |
+|---|---|
+| `lib/data/people.ts` | 로그인 없이 여는 명단 조회 (`listPeople` · `getPerson`) |
+| `lib/search.ts` | 이름 찾기 — 부분 일치 · 공백 무시 · 초성 |
+| `lib/submitted.ts` | 이 기기가 남긴 이력 + 멱등 키 생성 |
+| `lib/useLocalStore.ts` | 저장소를 읽는 훅 (`useSyncExternalStore`) |
+| `actions/submitFeedback.ts` | 강점 하나를 남기는 유일한 쓰기 경로 |
+| `features/home/PeopleBrowser.tsx` | 조 칩 · 검색 · 사람 카드 |
+| `features/feedback/StrengthBoard.tsx` | 24강점 카드 → 사유 → 확인 → 저장 |
+| `features/strengths/StrengthBody.tsx` | 설명 본문. 시트와 `/strengths` 가 같이 쓴다 |
 
 ---
 
@@ -156,14 +175,11 @@ npm run gen:types && npm run typecheck
 
 ### 4-2. 7~15단계
 
-조회는 `lib/auth/dal.ts` 를 거친다. 페이지에서 직접 Supabase 를 부르지 않는다.
+관리자 조회는 `lib/auth/dal.ts`, 참여자 조회는 `lib/data/` 를 거친다.
+페이지에서 직접 Supabase 를 부르지 않는다.
 
 | 단계 | 내용 |
 |---|---|
-| 7 | 제출 이력 localStorage (`submitted.ts`) |
-| 8 | 홈 — 조 필터·검색·사람 목록 |
-| 9 | 조 참여 흐름 (내 조, 진행 카드) |
-| 10 | 강점 등록 폼 (3단계 + 확인 다이얼로그) |
 | 11 | 차트 컴포넌트 — `splitByVisibility()` 로 0% 는 이름만 |
 | 12 | 개인 결과 페이지 |
 | 13 | 전체 통계 |
