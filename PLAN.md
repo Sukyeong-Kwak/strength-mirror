@@ -78,7 +78,7 @@ npm run lint
 | 3 | 타입 생성 + Supabase 클라이언트 | 완료 |
 | 4 | 관리자 인증 (OTP 전용) + 리뷰 반영 | 완료 |
 | 5 | 명단 파서 `parsePeople.ts` | 완료 (테스트 27) |
-| 6 | 명단 일괄 등록 화면 `/admin/people/import` | 미착수 |
+| 6 | 명단 일괄 등록 화면 `/admin/people/import` | 완료 |
 | 7 | 제출 이력 localStorage (`submitted.ts`) | 미착수 |
 | 8 | 홈 (조 필터·검색·사람 목록) | 미착수 |
 | 9 | 조 참여 흐름 (내 조, 진행 카드) | 미착수 |
@@ -143,12 +143,9 @@ npm run gen:types && npm run typecheck
 10단계(제출 폼)에서 `submit_feedback` 을 부르기 전까지는 타입이 낡아도
 빌드가 깨지지 않지만, 그전에 맞춰두는 편이 낫다.
 
-### 4-2. 6단계 — 명단 일괄 등록 `/admin/people/import`
+### 4-2. 7~15단계
 
-파서(`parsePeople.ts`)는 이미 있다. 화면과 Server Action 만 만들면 된다.
-조회·변경은 `lib/auth/dal.ts` 에 넣는다. 페이지에서 직접 Supabase 를 부르지 않는다.
-
-### 4-3. 7~15단계
+조회는 `lib/auth/dal.ts` 를 거친다. 페이지에서 직접 Supabase 를 부르지 않는다.
 
 | 단계 | 내용 |
 |---|---|

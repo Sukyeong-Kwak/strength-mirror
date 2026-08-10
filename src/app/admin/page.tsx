@@ -35,6 +35,12 @@ export default async function AdminHomePage() {
     <AdminShell session={session} title="관리자">
       <nav className="mt-4 flex flex-col gap-2">
         <Link
+          href="/admin/people/import"
+          className="min-h-11 rounded-base border border-line bg-surface px-4 py-3 text-base"
+        >
+          명단 등록
+        </Link>
+        <Link
           href="/admin/settings"
           className="min-h-11 rounded-base border border-line bg-surface px-4 py-3 text-base"
         >

@@ -102,6 +102,31 @@ export async function getReceiptTotals(): Promise<PersonTotals[]> {
     .filter((row): row is PersonTotals => row !== null);
 }
 
+/**
+ * 중복 판정에 쓸 기존 인원. 이름과 조만 가져온다.
+ *
+ * 명단 등록 미리보기가 "이미 있음" 을 표시하는 데 쓴다.
+ * 화면을 연 시점의 명단이므로 판단은 여기서 끝나지 않는다.
+ * 그사이 다른 관리자가 등록했을 수 있어서, 실제 insert 직전에 서버가 다시 본다.
+ */
+export async function getPeopleForDedupe(): Promise<
+  Array<{ name: string; groupName: string | null }>
+> {
+  await requireAdmin();
+  const supabase = await createSupabaseServerClient();
+
+  const { data, error } = await supabase.from("people").select("name, group_name");
+
+  if (error) {
+    throw new Error("기존 명단을 불러오지 못했어요");
+  }
+
+  return (data ?? []).map((row) => ({
+    name: row.name,
+    groupName: row.group_name,
+  }));
+}
+
 /** 결과 공개 게이트 상태 */
 export async function getResultsStatus(): Promise<ResultsStatus> {
   await requireAdmin();

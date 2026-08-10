@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { EmptyState } from "@/components/EmptyState";
@@ -89,6 +90,16 @@ export function ReceiptStatusTable({
               filtered
                 ? "이 조건에 맞는 사람이 없어요. 조를 전체로 바꾸거나 검색어를 지워보세요"
                 : "아직 등록된 사람이 없어요. 명단부터 등록해주세요"
+            }
+            action={
+              filtered ? undefined : (
+                <Link
+                  href="/admin/people/import"
+                  className="inline-flex min-h-11 items-center justify-center rounded-base border border-ink bg-ink px-4 text-base text-surface"
+                >
+                  명단 등록하러 가기
+                </Link>
+              )
             }
           />
         </div>
