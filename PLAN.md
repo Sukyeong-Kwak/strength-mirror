@@ -79,6 +79,10 @@ npm run lint
 | 메일 발송 | Resend 커스텀 SMTP | Supabase 기본 SMTP 는 시간당 발송 제한이 매우 낮다 |
 | 관리자 권한 확인 | 레이아웃 게이트가 아니라 **DAL** (`lib/auth/dal.ts`) | 레이아웃은 그 아래 page 실행도 RSC 페이로드 노출도 막지 못한다 (Next 문서 명시) |
 | 에러 바운더리 prop | `reset` 이 아니라 **`retry`** | Next 16.3.0 에서 정식화됐다. `reset` 은 데이터를 다시 가져오지 않는다 |
+| 강점 이름·차례 | VIA 공식 분류 + 국내 표 번역어(표 1. Strengths Finder). 통찰·용감성·진실성·신중성·자기통제력·유머감각, 덕목은 정의감·절제력·영성과 초월성 | 참가자가 손에 든 검사지와 같은 말이어야 한다. 인간애는 친절 → 사랑 차례다 |
+| 버튼 모양 | `components/Button.tsx` 한 곳 — `Button`·`Chip`·`buttonClass` | 밑줄 글자 버튼과 손으로 베낀 칩 클래스가 화면마다 따로 놀았다 |
+| 시트 포커스 | 효과 의존성에서 `onClose` 를 뺀다 (ref 로 들고 본다) | 부모가 다시 그릴 때마다 포커스가 시트로 되돌아가 입력칸에 글이 안 써졌다 |
+| 집계 보기 전환 | URL 쿼리 `?view=`·`?group=`. 클라이언트 상태를 쓰지 않는다 | 서버가 그린 그대로 끝나는 화면이다. 새로 고침·공유 링크에서 보던 화면이 유지된다 |
 
 ---
 
@@ -97,9 +101,9 @@ npm run lint
 | 8 | 홈 (조 필터·검색·사람 목록) | 완료 · 초성 검색 포함 (테스트 9) |
 | 9 | 조 참여 흐름 | 일부 — 마지막에 본 조를 기억한다. 진행 카드는 12단계와 함께 |
 | 10 | 강점 등록 (`/p/[id]`) — 고르기 → 사유 → 확인 → 저장 | 완료 · **하나씩 제출로 바뀜** |
-| 11 | 차트 컴포넌트 (`RatioBar` 등) | `ratio.ts` + 테스트만 완료 (5% 눈금 반영됨) |
-| 12 | 개인 결과 페이지 | 미착수 |
-| 13 | 전체 통계 페이지 | 미착수 |
+| 11 | 차트 컴포넌트 (`RatioBar` · `VirtueStack`) | 완료 · 5% 눈금 · 0% 는 이름만 |
+| 12 | 개인 결과 페이지 (`/p/[id]/result`) | 완료 · 사유 카드 포함 |
+| 13 | 전체 통계 페이지 (`/results`) | 완료 · 조별 보기 포함 |
 | 14 | 모바일 QA → 태블릿 확장 | 미착수 |
 | 15 | README + Vercel 배포 | 미착수 |
 
@@ -118,6 +122,10 @@ npm run lint
 | `features/home/PeopleBrowser.tsx` | 조 칩 · 검색 · 사람 카드 |
 | `features/feedback/StrengthBoard.tsx` | 24강점 카드 → 사유 → 확인 → 저장 |
 | `features/strengths/StrengthBody.tsx` | 설명 본문. 시트와 `/strengths` 가 같이 쓴다 |
+| `lib/data/results.ts` | 집계 조회 (비율만. 건수 컬럼이 애초에 없다) |
+| `components/RatioBar.tsx` | 비율 막대 · 덕목 스택 막대 |
+| `features/results/ResultChart.tsx` | 강점별·덕목별 보기. 개인과 전체가 같이 쓴다 |
+| `features/results/LockedNotice.tsx` | 게이트가 잠겼을 때. 남은 사람 수만 알려준다 |
 
 ---
 
@@ -193,11 +201,11 @@ npm run gen:types && npm run typecheck
 
 | 단계 | 내용 |
 |---|---|
-| 11 | 차트 컴포넌트 — `splitByVisibility()` 로 0% 는 이름만 |
-| 12 | 개인 결과 페이지 |
-| 13 | 전체 통계 |
 | 14 | 모바일 QA → 태블릿 |
 | 15 | README + Vercel 배포 |
+
+> 집계 화면은 게이트가 잠긴 상태에서만 확인했다 (지금 DB 는 2명 미달).
+> 열린 뒤의 화면은 가짜 데이터로 그려서 확인했다. 실제 데이터로는 14단계에서 본다.
 
 각 단계 끝에 리뷰 2회 → 커밋 → 푸시.
 

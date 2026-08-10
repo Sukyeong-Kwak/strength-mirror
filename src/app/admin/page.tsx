@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { buttonClass } from "@/components/Button";
 import { AdminShell } from "@/features/admin/AdminShell";
 import { ReceiptStatusTable } from "@/features/admin/ReceiptStatusTable";
 import { RecentActivity } from "@/features/admin/RecentActivity";
@@ -41,23 +42,17 @@ export default async function AdminHomePage() {
   return (
     <AdminShell session={session} title="관리자">
       <nav className="mt-4 flex flex-col gap-2">
-        <Link
-          href="/admin/people/import"
-          className="min-h-11 rounded-base border border-line bg-surface px-4 py-3 text-base"
-        >
+        <Link href="/admin/people/import" className={buttonClass("secondary", true)}>
           명단 등록
         </Link>
-        <Link
-          href="/admin/people"
-          className="min-h-11 rounded-base border border-line bg-surface px-4 py-3 text-base"
-        >
+        <Link href="/admin/people" className={buttonClass("secondary", true)}>
           명단 관리
         </Link>
-        <Link
-          href="/admin/settings"
-          className="min-h-11 rounded-base border border-line bg-surface px-4 py-3 text-base"
-        >
+        <Link href="/admin/settings" className={buttonClass("secondary", true)}>
           관리자 관리
+        </Link>
+        <Link href="/results" className={buttonClass("secondary", true)}>
+          집계 보기
         </Link>
       </nav>
 

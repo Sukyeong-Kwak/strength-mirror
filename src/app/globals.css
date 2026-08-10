@@ -102,6 +102,30 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/*
+ * 막대가 왼쪽에서 자라나는 움직임 (6-5).
+ *
+ * width 를 애니메이션하면 매 프레임 레이아웃을 다시 계산한다.
+ * 폭은 처음부터 최종값으로 두고 scaleX 만 움직인다.
+ * 길이·간격은 lib/constants.ts 에서 인라인 스타일로 들어온다.
+ */
+@keyframes bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.bar-grow {
+  transform-origin: left center;
+  animation-name: bar-grow;
+  /* 차례를 기다리는 동안 0 인 채로 있어야 한다. 안 그러면 다 그려졌다가 줄어든다 */
+  animation-fill-mode: backwards;
+  animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -18,9 +18,12 @@ export default async function HomePage() {
         <PeopleBrowser people={people} />
       </div>
 
-      <div className="mt-10 border-t border-line pt-6">
+      <div className="mt-10 flex flex-wrap gap-2 border-t border-line pt-6">
         <Link href="/strengths" className={buttonClass()}>
           24가지 강점이 무엇인지 보기
+        </Link>
+        <Link href="/results" className={buttonClass()}>
+          전체 집계 보기
         </Link>
       </div>
     </main>

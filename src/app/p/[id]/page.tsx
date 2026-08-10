@@ -44,6 +44,17 @@ export default async function PersonPage({ params }: PersonPageProps) {
       <p className="mt-1 text-sm text-muted">{toGroupLabel(person.groupName)}</p>
 
       <StrengthBoard person={person} />
+
+      {/*
+        결과는 모두가 5개씩 받은 뒤에 열린다. 잠겨 있을 때도 링크를 숨기지 않는다.
+        숨기면 "왜 결과가 없는지" 를 물어볼 곳이 사라진다. 눌러 들어가면
+        무엇을 기다리는 중인지 알려준다
+      */}
+      <div className="mt-10 border-t border-line pt-6">
+        <Link href={`/p/${person.id}/result`} className={buttonClass()}>
+          {person.name}님이 받은 강점 보기
+        </Link>
+      </div>
     </main>
   );
 }
