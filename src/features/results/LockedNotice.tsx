@@ -21,7 +21,8 @@ export function LockedNotice({ remaining }: { remaining: number }) {
           : `모두가 강점 ${MIN_STRENGTHS_PER_PERSON}개씩 받으면 결과가 함께 열려요`}
       </p>
       <div className="mt-4">
-        <Link href="/" className={buttonClass("primary")}>
+        {/* 잠긴 화면에서 할 수 있는 유일한 일 */}
+        <Link href="/" className={buttonClass("primary", false, "lg")}>
           강점 남기러 가기
         </Link>
       </div>

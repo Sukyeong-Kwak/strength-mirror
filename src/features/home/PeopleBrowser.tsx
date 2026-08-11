@@ -104,6 +104,7 @@ export function PeopleBrowser({ people }: PeopleBrowserProps) {
             {[ALL_GROUPS, ...groups].map((name) => (
               <Chip
                 key={name}
+                size="md"
                 pressed={name === group}
                 onClick={() => chooseGroup(name)}
               >
@@ -148,9 +149,10 @@ export function PeopleBrowser({ people }: PeopleBrowserProps) {
                   <li key={person.id}>
                     <Link
                       href={`/p/${person.id}`}
-                      className="flex h-full min-h-11 items-center justify-between gap-2 rounded-base border border-line bg-surface px-3 py-3 sm:px-4"
+                      className="flex h-full min-h-14 items-center justify-between gap-2 rounded-base border border-line bg-surface px-3 py-3 sm:px-4"
                     >
-                      <span className="font-display text-base">{person.name}</span>
+                      {/* 이 화면에서 눌러야 할 것. 어떤 버튼보다도 커야 한다 */}
+                      <span className="font-display text-lg">{person.name}</span>
                       {donePersonIds.has(person.id) && (
                         <span className="shrink-0 rounded-base border border-line px-1.5 py-1 text-xs text-muted">
                           남겼어요

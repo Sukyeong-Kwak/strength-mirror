@@ -36,7 +36,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-6">
-      <Link href="/" className={buttonClass()}>
+      <Link href="/" className={buttonClass("secondary", false, "sm")}>
         명단으로
       </Link>
 
@@ -51,7 +51,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
         무엇을 기다리는 중인지 알려준다
       */}
       <div className="mt-10 border-t border-line pt-6">
-        <Link href={`/p/${person.id}/result`} className={buttonClass()}>
+        <Link href={`/p/${person.id}/result`} className={buttonClass("secondary", false, "sm")}>
           {person.name}님이 받은 강점 보기
         </Link>
       </div>

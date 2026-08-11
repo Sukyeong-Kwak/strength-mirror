@@ -32,7 +32,10 @@ export default function ErrorPage({ error, retry }: ErrorPageProps) {
       </p>
 
       <div className="mt-6">
-        <Button onClick={() => retry()}>다시 시도</Button>
+        {/* 이 화면에 남은 유일한 길 */}
+        <Button size="lg" onClick={() => retry()}>
+          다시 시도
+        </Button>
       </div>
 
       {error.digest !== undefined && (

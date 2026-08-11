@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 export default function StrengthsPage() {
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-6">
-      <Link href="/" className={buttonClass()}>
+      <Link href="/" className={buttonClass("secondary", false, "sm")}>
         명단으로
       </Link>
 
@@ -36,7 +36,7 @@ export default function StrengthsPage() {
       </p>
 
       <div className="mt-4">
-        <Link href="/strengths/all" className={buttonClass()}>
+        <Link href="/strengths/all" className={buttonClass("secondary", false, "sm")}>
           전체 한눈에 보기
         </Link>
       </div>

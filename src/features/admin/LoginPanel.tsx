@@ -139,7 +139,7 @@ export function LoginPanel({ next, initialError }: LoginPanelProps) {
             onChange={(event) => setEmail(event.target.value)}
             className="min-h-11 w-full rounded-base border border-line px-3 text-base"
           />
-          <Button block type="submit" disabled={busy}>
+          <Button block size="lg" type="submit" disabled={busy}>
             코드 받기
           </Button>
         </form>
@@ -174,13 +174,14 @@ export function LoginPanel({ next, initialError }: LoginPanelProps) {
               onChange={(event) => setCode(event.target.value)}
               className="num min-h-11 w-full rounded-base border border-line px-3 text-base tracking-widest"
             />
-            <Button block type="submit" disabled={busy}>
+            <Button block size="lg" type="submit" disabled={busy}>
               로그인
             </Button>
           </form>
 
           <Button
             block
+            size="sm"
             variant="quiet"
             disabled={busy}
             onClick={() => {

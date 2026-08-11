@@ -41,7 +41,7 @@ export default async function StrengthPage({ params }: StrengthPageProps) {
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-6">
-      <Link href="/strengths" className={buttonClass()}>
+      <Link href="/strengths" className={buttonClass("secondary", false, "sm")}>
         24가지 강점 목차
       </Link>
 

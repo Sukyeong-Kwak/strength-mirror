@@ -57,7 +57,7 @@ export default async function PersonResultPage({
   if (!status.unlocked) {
     return (
       <main className="mx-auto w-full max-w-3xl px-4 py-6">
-        <Link href={`/p/${person.id}`} className={buttonClass()}>
+        <Link href={`/p/${person.id}`} className={buttonClass("secondary", false, "sm")}>
           돌아가기
         </Link>
         <h1 className="mt-4 text-2xl">{person.name}님이 받은 강점</h1>
@@ -75,7 +75,7 @@ export default async function PersonResultPage({
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-6">
-      <Link href={`/p/${person.id}`} className={buttonClass()}>
+      <Link href={`/p/${person.id}`} className={buttonClass("secondary", false, "sm")}>
         돌아가기
       </Link>
 

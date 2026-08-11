@@ -153,11 +153,12 @@ export function StrengthBoard({ person }: StrengthBoardProps) {
                     key={strength.code}
                     className="flex items-stretch overflow-hidden rounded-base border border-line bg-surface"
                   >
+                    {/* 이 앱이 존재하는 이유. 옆의 '설명' 보다 확실히 커야 한다 */}
                     <button
                       type="button"
                       onClick={() => openWrite(strength)}
                       disabled={done}
-                      className="flex min-h-11 flex-1 items-center gap-2 px-3 text-left disabled:opacity-50"
+                      className="flex min-h-14 flex-1 items-center gap-2 px-3 text-left disabled:opacity-50"
                     >
                       {/* 덕목 색 점. 머리글에서 눈을 떼도 어느 묶음인지 남는다 */}
                       <span
@@ -173,7 +174,7 @@ export function StrengthBoard({ person }: StrengthBoardProps) {
                       type="button"
                       onClick={() => setInfo(strength)}
                       aria-label={`${strength.nameKo} 설명 보기`}
-                      className="min-h-11 shrink-0 border-l border-line px-3 text-xs text-muted"
+                      className="min-h-14 shrink-0 border-l border-line px-2.5 text-xs text-muted"
                     >
                       설명
                     </button>
@@ -198,12 +199,18 @@ export function StrengthBoard({ person }: StrengthBoardProps) {
         }
         onClose={closeWrite}
         footer={
+          /* 시트가 열려 있는 동안은 이 두 개가 화면의 전부다. 가장 큰 크기로 */
           step === "write" ? (
             <div className="flex gap-2">
-              <Button variant="secondary" onClick={closeWrite} block>
+              <Button variant="secondary" size="lg" onClick={closeWrite} block>
                 취소
               </Button>
-              <Button onClick={() => setStep("confirm")} disabled={!canSave} block>
+              <Button
+                size="lg"
+                onClick={() => setStep("confirm")}
+                disabled={!canSave}
+                block
+              >
                 등록하기
               </Button>
             </div>
@@ -211,13 +218,14 @@ export function StrengthBoard({ person }: StrengthBoardProps) {
             <div className="flex gap-2">
               <Button
                 variant="secondary"
+                size="lg"
                 onClick={() => setStep("write")}
                 disabled={pending}
                 block
               >
                 수정
               </Button>
-              <Button onClick={save} disabled={pending} block>
+              <Button size="lg" onClick={save} disabled={pending} block>
                 {pending ? "등록 중…" : "등록"}
               </Button>
             </div>
@@ -308,10 +316,10 @@ export function StrengthBoard({ person }: StrengthBoardProps) {
         onClose={() => setSaved(null)}
         footer={
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => setSaved(null)} block>
+            <Button variant="secondary" size="lg" onClick={() => setSaved(null)} block>
               더 남기기
             </Button>
-            <Link href="/" className={buttonClass("primary", true)}>
+            <Link href="/" className={buttonClass("primary", true, "lg")}>
               명단으로
             </Link>
           </div>

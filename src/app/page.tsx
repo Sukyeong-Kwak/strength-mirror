@@ -45,11 +45,15 @@ export default async function HomePage() {
         <PeopleBrowser people={people} />
       </div>
 
+      {/*
+        여기서 해야 할 일은 이름을 고르는 것이고, 이 둘은 곁길이다.
+        같은 덩치로 두면 명단을 지나쳐 이쪽부터 누른다
+      */}
       <div className="mt-10 flex flex-wrap gap-2 border-t border-line pt-6">
-        <Link href="/strengths" className={buttonClass()}>
+        <Link href="/strengths" className={buttonClass("secondary", false, "sm")}>
           24가지 강점이 무엇인지 보기
         </Link>
-        <Link href="/results" className={buttonClass()}>
+        <Link href="/results" className={buttonClass("secondary", false, "sm")}>
           전체 집계 보기
         </Link>
       </div>

@@ -38,7 +38,8 @@ export function ViewToggle({
           key={item.key}
           href={hrefFor(item.key)}
           aria-current={item.key === view ? "page" : undefined}
-          className={buttonClass(item.key === view ? "primary" : "secondary", false, "sm")}
+          /* 이 화면을 보는 방식을 정하는 자리다. 아래 조 거르기(sm)보다 먼저 읽혀야 한다 */
+          className={buttonClass(item.key === view ? "primary" : "secondary", false, "md")}
         >
           {item.label}
         </Link>

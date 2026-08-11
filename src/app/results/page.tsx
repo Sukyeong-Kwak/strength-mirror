@@ -44,7 +44,7 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
   if (!status.unlocked) {
     return (
       <main className="mx-auto w-full max-w-3xl px-4 py-6">
-        <Link href="/" className={buttonClass()}>
+        <Link href="/" className={buttonClass("secondary", false, "sm")}>
           명단으로
         </Link>
         <h1 className="mt-4 text-2xl">전체 집계</h1>
@@ -79,7 +79,7 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-6">
-      <Link href="/" className={buttonClass()}>
+      <Link href="/" className={buttonClass("secondary", false, "sm")}>
         명단으로
       </Link>
 

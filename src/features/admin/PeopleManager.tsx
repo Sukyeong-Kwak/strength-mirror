@@ -103,7 +103,7 @@ export function PeopleManager({ people }: PeopleManagerProps) {
         <EmptyState
           title="아직 등록된 사람이 없어요. 명단부터 등록해주세요"
           action={
-            <Link href="/admin/people/import" className={buttonClass("primary")}>
+            <Link href="/admin/people/import" className={buttonClass("primary", false, "lg")}>
               명단 등록하러 가기
             </Link>
           }
@@ -194,6 +194,7 @@ export function PeopleManager({ people }: PeopleManagerProps) {
                   <div className="flex shrink-0 gap-2">
                     <Button
                       variant="secondary"
+                      size="sm"
                       disabled={pending}
                       onClick={() => toggleHidden(person)}
                     >
@@ -201,6 +202,7 @@ export function PeopleManager({ people }: PeopleManagerProps) {
                     </Button>
                     <Button
                       variant="secondary"
+                      size="sm"
                       disabled={pending}
                       onClick={() => {
                         setError(null);

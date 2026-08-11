@@ -292,6 +292,7 @@ export function PeopleImportPanel({ existing }: PeopleImportPanelProps) {
           {!confirming && (
             <Button
               block
+              size="lg"
               disabled={pending || selected.length === 0 || blocked !== null}
               onClick={() => {
                 setError(null);

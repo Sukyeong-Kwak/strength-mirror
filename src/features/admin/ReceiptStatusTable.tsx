@@ -85,7 +85,7 @@ export function ReceiptStatusTable({
             }
             action={
               filtered ? undefined : (
-                <Link href="/admin/people/import" className={buttonClass("primary")}>
+                <Link href="/admin/people/import" className={buttonClass("primary", false, "lg")}>
                   명단 등록하러 가기
                 </Link>
               )
