@@ -139,16 +139,20 @@ export function PeopleBrowser({ people }: PeopleBrowserProps) {
               {group === ALL_GROUPS && (
                 <h2 className="text-sm text-muted">{section.name}</h2>
               )}
-              <ul className="mt-2 grid gap-2 sm:grid-cols-2">
+              {/*
+                이름 한 줄짜리 칸이라 좁은 화면에서도 두 줄로 깐다.
+                한 줄로 세우면 한 조를 보는 데도 화면을 여러 번 넘겨야 한다.
+              */}
+              <ul className="mt-2 grid grid-cols-2 gap-2 lg:grid-cols-3">
                 {section.members.map((person) => (
                   <li key={person.id}>
                     <Link
                       href={`/p/${person.id}`}
-                      className="flex min-h-11 items-center justify-between gap-3 rounded-base border border-line bg-surface px-4 py-3"
+                      className="flex h-full min-h-11 items-center justify-between gap-2 rounded-base border border-line bg-surface px-3 py-3 sm:px-4"
                     >
                       <span className="font-display text-base">{person.name}</span>
                       {donePersonIds.has(person.id) && (
-                        <span className="shrink-0 rounded-base border border-line px-2 py-1 text-xs text-muted">
+                        <span className="shrink-0 rounded-base border border-line px-1.5 py-1 text-xs text-muted">
                           남겼어요
                         </span>
                       )}
