@@ -561,6 +561,14 @@ export type VirtueMeta = {
   /** 막대·세로 인디케이터용 배경 클래스 */
   barClass: string;
   /**
+   * 막대 색의 CSS 변수 이름.
+   *
+   * 히트맵은 같은 색을 흰색과 섞어 진하기를 24단으로 나눈다. 클래스로는
+   * 그 조합을 미리 만들어 둘 수 없어 인라인 스타일로 색을 계산해야 하고,
+   * 그때 색을 다시 적으면 팔레트가 두 곳으로 갈린다. 그래서 이름만 준다.
+   */
+  colorVar: string;
+  /**
    * 칩·뱃지용 (배경 + 글자색 + 경계선).
    * 색을 채우고 흰 글자를 얹으면 절제처럼 대비가 2.9:1 밖에 안 나오는 색이 생긴다.
    * 그래서 흰 배경에 진한 색 글자와 색 경계선으로 간다.
@@ -580,6 +588,7 @@ export const VIRTUE_META: Record<VirtueCode, VirtueMeta> = {
     nameKo: "지혜와 지식",
     nameEn: "Wisdom & Knowledge",
     barClass: "bg-virtue-wisdom",
+    colorVar: "--color-virtue-wisdom",
     chipClass: "bg-surface text-virtue-wisdom-ink border-virtue-wisdom",
     textClass: "text-virtue-wisdom-ink",
     order: 1,
@@ -588,6 +597,7 @@ export const VIRTUE_META: Record<VirtueCode, VirtueMeta> = {
     nameKo: "용기",
     nameEn: "Courage",
     barClass: "bg-virtue-courage",
+    colorVar: "--color-virtue-courage",
     chipClass: "bg-surface text-virtue-courage-ink border-virtue-courage",
     textClass: "text-virtue-courage-ink",
     order: 2,
@@ -596,6 +606,7 @@ export const VIRTUE_META: Record<VirtueCode, VirtueMeta> = {
     nameKo: "인간애",
     nameEn: "Humanity",
     barClass: "bg-virtue-humanity",
+    colorVar: "--color-virtue-humanity",
     chipClass: "bg-surface text-virtue-humanity-ink border-virtue-humanity",
     textClass: "text-virtue-humanity-ink",
     order: 3,
@@ -604,6 +615,7 @@ export const VIRTUE_META: Record<VirtueCode, VirtueMeta> = {
     nameKo: "정의감",
     nameEn: "Justice",
     barClass: "bg-virtue-justice",
+    colorVar: "--color-virtue-justice",
     chipClass: "bg-surface text-virtue-justice-ink border-virtue-justice",
     textClass: "text-virtue-justice-ink",
     order: 4,
@@ -612,6 +624,7 @@ export const VIRTUE_META: Record<VirtueCode, VirtueMeta> = {
     nameKo: "절제력",
     nameEn: "Temperance",
     barClass: "bg-virtue-temperance",
+    colorVar: "--color-virtue-temperance",
     chipClass: "bg-surface text-virtue-temperance-ink border-virtue-temperance",
     textClass: "text-virtue-temperance-ink",
     order: 5,
@@ -620,6 +633,7 @@ export const VIRTUE_META: Record<VirtueCode, VirtueMeta> = {
     nameKo: "영성과 초월성",
     nameEn: "Transcendence",
     barClass: "bg-virtue-transcendence",
+    colorVar: "--color-virtue-transcendence",
     chipClass: "bg-surface text-virtue-transcendence-ink border-virtue-transcendence",
     textClass: "text-virtue-transcendence-ink",
     order: 6,

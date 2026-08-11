@@ -1,10 +1,12 @@
 import Link from "next/link";
 
-import { RatioBar, VirtueStack } from "@/components/RatioBar";
+import { RatioBar, VirtueDonut } from "@/components/RatioBar";
 import { buttonClass } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
+import { StrengthHeatmap } from "@/features/results/StrengthHeatmap";
 import { groupByVirtue, splitByVisibility, toVirtueSegments } from "@/lib/ratio";
-import type { ChartView, StrengthRatioRow } from "@/types/domain";
+import { getStrength } from "@/lib/strengths";
+import { CHART_VIEWS, type ChartView, type StrengthRatioRow } from "@/types/domain";
 
 /**
  * 집계 차트 (7-1 · 7-2).
@@ -18,6 +20,22 @@ import type { ChartView, StrengthRatioRow } from "@/types/domain";
  * 서버에서 내려오는 것은 비율뿐이다. 건수는 어떤 경로로도 오지 않는다.
  */
 
+/**
+ * 탭 이름은 명사 하나로 둔다.
+ *
+ * 전에는 "한눈에 · 강점별 · 덕목별" 이었다. 첫 칸만 부사구고 나머지는
+ * "…별" 이라 나란히 놓았을 때 형태가 어긋났다. 한 줄에 붙어 있는 것들은
+ * 품사가 같아야 눈이 훑고 지나간다.
+ *
+ * 두 번째 칸을 "순위" 로 부르는 것은, 히트맵이 못 해주는 일이 그것뿐이기
+ * 때문이다. 넓이로는 두 칸 중 어느 쪽이 큰지는 보여도 몇 번째인지는 셀 수
+ * 없다. "목록" 은 무엇이 담겼는지를 말해주지 않아 고를 근거가 되지 못한다.
+ */
+const VIEW_LABEL: Record<ChartView, string> = {
+  heatmap: "히트맵",
+  ranking: "순위",
+};
+
 export function ViewToggle({
   view,
   hrefFor,
@@ -26,22 +44,17 @@ export function ViewToggle({
   /** 보기별 링크. 화면마다 다른 쿼리를 붙여야 해서 밖에서 만든다 */
   hrefFor: (view: ChartView) => string;
 }) {
-  const items: readonly { key: ChartView; label: string }[] = [
-    { key: "strength", label: "강점별" },
-    { key: "virtue", label: "덕목별" },
-  ];
-
   return (
     <div className="flex gap-2">
-      {items.map((item) => (
+      {CHART_VIEWS.map((key) => (
         <Link
-          key={item.key}
-          href={hrefFor(item.key)}
-          aria-current={item.key === view ? "page" : undefined}
+          key={key}
+          href={hrefFor(key)}
+          aria-current={key === view ? "page" : undefined}
           /* 이 화면을 보는 방식을 정하는 자리다. 아래 조 거르기(sm)보다 먼저 읽혀야 한다 */
-          className={buttonClass(item.key === view ? "primary" : "secondary", false, "md")}
+          className={buttonClass(key === view ? "primary" : "secondary", false, "md")}
         >
-          {item.label}
+          {VIEW_LABEL[key]}
         </Link>
       ))}
     </div>
@@ -75,79 +88,75 @@ export function ResultChart({
     return <EmptyState title="아직 집계할 것이 없어요" />;
   }
 
-  const { charted, mentioned } = splitByVisibility(strengthRows);
+  const { mentioned } = splitByVisibility(strengthRows);
 
-  if (view === "virtue") {
+  if (view === "heatmap") {
     /*
-      덕목 값은 강점 비율을 더해서 만든다. DB 의 덕목 뷰(person_virtue_ratio 등)를
-      쓰지 않는 이유는 그쪽이 자기 나름대로 5% 눈금에 올리기 때문이다.
-      같은 인간애가 이 화면에서 40%, 강점별 보기의 소계에서 35% 로 갈리면
-      숫자를 믿을 수 없게 된다. 출처를 하나로 둔다 (ratio.ts 의 groupByVirtue 주석).
+      히트맵은 스물네 칸을 다 그리므로 "이런 강점도 받았어요" 를 붙이지 않는다.
+      5% 아래로 내려간 강점도 판 위에 옅은 칸으로 이미 자리를 갖고 있다.
     */
-    const groups = groupByVirtue(strengthRows);
-    const segments = toVirtueSegments(
-      groups.map((group) => ({ virtue: group.virtue, ratio: group.subtotal })),
-    );
-
-    return (
-      <div>
-        <VirtueStack rows={segments} />
-
-        <ul className="mt-4 flex flex-col gap-4">
-          {groups
-            .filter((group) => group.subtotal > 0)
-            .map((group, index) => (
-              <RatioBar
-                key={group.virtue}
-                nameKo={group.meta.nameKo}
-                ratio={group.subtotal}
-                virtue={group.virtue}
-                index={index}
-              />
-            ))}
-        </ul>
-
-        <MentionedStrengths rows={mentioned} />
-      </div>
-    );
+    return <StrengthHeatmap strengthRows={strengthRows} />;
   }
 
-  const groups = groupByVirtue(strengthRows).filter(
-    (group) => group.rows.some((row) => row.ratio > 0),
+  /*
+    위는 덕목 도넛, 아래는 강점 하나하나. 두 층이 한 화면에 있다.
+
+    전에는 이 둘이 탭 두 개였다. 나눠 두면 "우리는 인간애 쪽" 과
+    "그중 친절이 가장 많다" 사이를 오가느라 탭을 계속 누르게 된다.
+    사실 그 둘은 같은 이야기의 큰 단위와 작은 단위다. 위아래로 놓으면
+    눈이 한 번 내려가는 것으로 끝난다.
+
+    강점은 덕목으로 갈라 섹션을 만들지 않는다. 머리글과 섹션 사이 여백이
+    막대보다 많은 자리를 차지했고, 무엇보다 섹션이 다르면 막대가 서로 다른
+    세로선에서 시작해 친절과 감사를 나란히 견줄 수 없었다.
+    어느 덕목인지는 막대 색과 위 도넛 범례가 알려준다.
+
+    덕목 값은 강점 비율을 더해서 만든다. DB 의 덕목 뷰(overall_virtue_ratio 등)를
+    쓰지 않는 이유는 그쪽이 자기 나름대로 5% 눈금에 올리기 때문이다.
+    같은 인간애가 도넛에서 40%, 아래 막대들의 합에서 35% 로 갈리면
+    숫자를 믿을 수 없게 된다. 출처를 하나로 둔다 (ratio.ts 의 groupByVirtue 주석).
+  */
+  const segments = toVirtueSegments(
+    groupByVirtue(strengthRows).map((group) => ({
+      virtue: group.virtue,
+      ratio: group.subtotal,
+    })),
   );
 
-  // 막대가 자라는 차례는 화면에 보이는 순서를 따른다. 섹션이 바뀌어도 이어 센다
-  let barIndex = 0;
+  /*
+    같은 비율이 여럿일 때 VIA 표의 차례로 갈라 세운다. 서버 뷰에는 ORDER BY 가
+    없어서, 비율만으로 세우면 10% 짜리 여섯 개가 새로 고칠 때마다 자리를 바꾼다.
+  */
+  const ranked = strengthRows
+    .filter((row) => row.ratio > 0)
+    .sort((a, b) =>
+      b.ratio === a.ratio
+        ? getStrength(a.strengthCode).order - getStrength(b.strengthCode).order
+        : b.ratio - a.ratio,
+    );
 
   return (
     <div>
-      <div className="flex flex-col gap-6">
-        {groups.map((group) => (
-          <section key={group.virtue}>
-            <div className="flex items-baseline justify-between gap-2">
-              <h2 className={`text-sm ${group.meta.textClass}`}>{group.meta.nameKo}</h2>
-              <span className="num text-sm text-muted">{group.subtotal}%</span>
-            </div>
+      <VirtueDonut rows={segments} />
 
-            <ul className="mt-2 flex flex-col gap-3">
-              {group.rows
-                .filter((row) => row.ratio > 0)
-                .map((row) => (
-                  <RatioBar
-                    key={row.strengthCode}
-                    nameKo={row.nameKo}
-                    ratio={row.ratio}
-                    virtue={row.virtue}
-                    index={barIndex++}
-                  />
-                ))}
-            </ul>
-          </section>
-        ))}
-      </div>
-
-      {charted.length === 0 && (
-        <EmptyState title="받은 강점이 모두 5% 아래예요. 아래 이름으로 확인해주세요" />
+      {ranked.length === 0 ? (
+        <div className="mt-6">
+          <EmptyState title="받은 강점이 모두 5% 아래예요. 아래 이름으로 확인해주세요" />
+        </div>
+      ) : (
+        <ul className="mt-6 flex flex-col gap-2.5 border-t border-line pt-6">
+          {ranked.map((row, index) => (
+            <RatioBar
+              key={row.strengthCode}
+              nameKo={row.nameKo}
+              ratio={row.ratio}
+              virtue={row.virtue}
+              index={index}
+              /* 1등이 막대 끝까지 간다. ranked 는 이미 큰 순이라 첫 줄이 1등이다 */
+              max={ranked[0]?.ratio ?? 100}
+            />
+          ))}
+        </ul>
       )}
 
       <MentionedStrengths rows={mentioned} />

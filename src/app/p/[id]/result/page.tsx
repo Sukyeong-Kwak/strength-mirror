@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { buttonClass } from "@/components/Button";
-import { ResultChart, ViewToggle } from "@/features/results/ResultChart";
+import { ResultChart } from "@/features/results/ResultChart";
 import { LockedNotice } from "@/features/results/LockedNotice";
 import { getPerson } from "@/lib/data/people";
 import {
@@ -14,11 +14,8 @@ import {
 import { toGroupLabel } from "@/lib/groups";
 import { findStrength } from "@/lib/strengths";
 import { formatRelativeTime } from "@/lib/time";
-import { isChartView, type ChartView } from "@/types/domain";
-
 type ResultPageProps = {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ view?: string }>;
 };
 
 /** 이름이 브라우저 기록과 공유 미리보기에 남지 않게 한다 */
@@ -35,10 +32,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  * 게이트가 잠겨 있으면 뷰가 행을 아예 내려주지 않는다.
  * 여기서 unlocked 를 보는 것은 "왜 비어 있는지" 를 설명하기 위해서다.
  */
-export default async function PersonResultPage({
-  params,
-  searchParams,
-}: ResultPageProps) {
+export default async function PersonResultPage({ params }: ResultPageProps) {
   const { id } = await params;
   if (!UUID.test(id)) {
     notFound();
@@ -48,9 +42,6 @@ export default async function PersonResultPage({
   if (person === null) {
     notFound();
   }
-
-  const { view: rawView } = await searchParams;
-  const view: ChartView = isChartView(rawView) ? rawView : "strength";
 
   const status = await getResultsStatus();
 
@@ -82,16 +73,15 @@ export default async function PersonResultPage({
       <h1 className="mt-4 text-2xl">{person.name}님이 받은 강점</h1>
       <p className="mt-1 text-sm text-muted">{toGroupLabel(person.groupName)}</p>
 
-      <div className="mt-4">
-        <ViewToggle
-          view={view}
-          hrefFor={(next) => `/p/${person.id}/result?view=${next}`}
-        />
-      </div>
+      {/*
+        여기에는 탭이 없다. 히트맵은 전체 집계에서만 뜻이 있다 — 한 사람이 받는
+        강점은 대여섯 가지라 스물네 칸 중 스무 칸이 빈 판이 되고, 그 판은
+        받은 것보다 못 받은 것을 먼저 보여준다.
 
-      {/* 비율만 보여준다. 몇 명이 골랐는지는 서버에서 오지 않는다 */}
+        비율만 보여준다. 몇 명이 골랐는지는 서버에서 오지 않는다
+      */}
       <div className="mt-6">
-        <ResultChart view={view} strengthRows={strengthRows} />
+        <ResultChart view="ranking" strengthRows={strengthRows} />
       </div>
 
       {reasons.length > 0 && (

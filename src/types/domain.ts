@@ -38,12 +38,36 @@ export type VirtueGroup = {
   rows: readonly StrengthRatioRow[];
 };
 
-/** 차트 보기 전환 상태. URL 쿼리 ?view= 에 그대로 실린다 */
-export const CHART_VIEWS = ["strength", "virtue"] as const;
+/**
+ * 차트 보기 전환 상태. URL 쿼리 ?view= 에 그대로 실린다.
+ *
+ * 차례가 곧 탭 차례다. 히트맵이 앞인 이유는 전체 집계에서 먼저 보여야 할 것이
+ * 순위표가 아니라 "우리가 어느 쪽으로 기울어 있나" 이기 때문이다.
+ *
+ * 전에는 덕목 보기가 따로 있었다. 순위 쪽 머리에 덕목 도넛을 얹으면서
+ * 그 탭이 하던 말을 도넛이 다 하게 되어 없앴다. 같은 것을 두 자리에서
+ * 보여주면 사람은 둘이 다른 것인 줄 알고 둘 다 열어본다.
+ */
+export const CHART_VIEWS = ["heatmap", "ranking"] as const;
 export type ChartView = (typeof CHART_VIEWS)[number];
 
 export function isChartView(value: unknown): value is ChartView {
   return typeof value === "string" && CHART_VIEWS.some((v) => v === value);
+}
+
+/**
+ * 쿼리로 들어온 보기를 그 화면이 가진 탭으로 좁힌다.
+ *
+ * 없는 값이나 그 화면에 없는 탭이 오면 첫 탭으로 되돌린다. 주소를 손으로
+ * 고쳐 넣었을 때 빈 화면이 나오지 않게 하려는 것이고, 첫 탭이 곧 기본값이라
+ * 화면마다 기본값을 따로 적지 않아도 된다.
+ */
+export function pickChartView(
+  raw: unknown,
+  allowed: readonly ChartView[] = CHART_VIEWS,
+): ChartView {
+  const fallback = allowed[0] ?? CHART_VIEWS[0];
+  return isChartView(raw) && allowed.includes(raw) ? raw : fallback;
 }
 
 /** 결과 공개 게이트 상태. 이름도 개인별 건수도 들어 있지 않다 */

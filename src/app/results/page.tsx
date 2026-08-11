@@ -13,7 +13,7 @@ import {
 } from "@/lib/data/results";
 import { collectGroupNames } from "@/lib/groups";
 import { josa } from "@/lib/korean";
-import { isChartView, type ChartView } from "@/types/domain";
+import { pickChartView, type ChartView } from "@/types/domain";
 
 type ResultsPageProps = {
   searchParams: Promise<{ view?: string; group?: string }>;
@@ -37,7 +37,7 @@ const ALL_GROUPS = "전체";
  */
 export default async function ResultsPage({ searchParams }: ResultsPageProps) {
   const { view: rawView, group: rawGroup } = await searchParams;
-  const view: ChartView = isChartView(rawView) ? rawView : "strength";
+  const view: ChartView = pickChartView(rawView);
 
   const status = await getResultsStatus();
 

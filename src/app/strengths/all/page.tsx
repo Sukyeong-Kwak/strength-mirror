@@ -6,7 +6,7 @@ import { StrengthBody } from "@/features/strengths/StrengthBody";
 import { STRENGTHS_BY_VIRTUE } from "@/lib/strengths";
 
 export const metadata: Metadata = {
-  title: "전체 한눈에 보기 · 강점 발굴",
+  title: "전부 이어서 읽기 · 강점 발굴",
 };
 
 /**
@@ -25,7 +25,7 @@ export default function AllStrengthsPage() {
         24가지 강점 목차
       </Link>
 
-      <h1 className="mt-4 text-2xl">전체 한눈에 보기</h1>
+      <h1 className="mt-4 text-2xl">전부 이어서 읽기</h1>
       <p className="mt-2 text-sm text-muted">
         여섯 덕목 순서대로 스물네 가지를 모두 실었어요.
       </p>

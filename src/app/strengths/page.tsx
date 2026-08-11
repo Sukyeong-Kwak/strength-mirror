@@ -17,7 +17,7 @@ export const metadata: Metadata = {
  *
  * 자세히 읽는 길은 두 개다.
  *   카드 → 그 강점 하나만 (/strengths/[code])
- *   전체 한눈에 보기 → 스물넷을 이어서 (/strengths/all)
+ *   전부 이어서 읽기 → 스물넷을 차례로 (/strengths/all)
  *
  * 카드는 좁은 화면에서도 두 줄로 깐다. 이름과 한 줄 설명뿐이라 한 칸이 좁아도
  * 읽히고, 한 줄로 세우면 스물넷이 화면 여섯 개 길이가 되어 지도 구실을 못 한다.
@@ -37,7 +37,7 @@ export default function StrengthsPage() {
 
       <div className="mt-4">
         <Link href="/strengths/all" className={buttonClass("secondary", false, "sm")}>
-          전체 한눈에 보기
+          전부 이어서 읽기
         </Link>
       </div>
 
