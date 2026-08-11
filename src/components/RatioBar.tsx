@@ -93,11 +93,15 @@ export function RatioBar({
  * 이름표는 그림 옆에 목록으로 두지 않고 조각마다 붙인다. 목록으로 두면
  * 색을 보고 목록으로 갔다가 다시 조각으로 돌아오는 왕복이 여섯 번 생긴다.
  *
- * 자리가 없어 접힌 이름표는 조각에 손을 올리면 나온다. 자리 계산은
- * lib/donut.ts 가 한다 (viewBox 단위라 화면 크기와 무관하게 같은 결과).
+ * 여섯 개가 언제나 다 보인다. 겹치는 이름표는 위아래로 밀어 띄우고,
+ * 밀려난 것은 지시선으로 제 조각과 잇는다. 손을 올려야 나오게 두지 않는
+ * 이유는 이 앱을 손가락으로 쓰기 때문이다 — 마우스가 없는 기기에는
+ * hover 가 없어서, 접는 순간 그 덕목은 볼 방법이 사라진다.
+ *
+ * 자리 계산은 lib/donut.ts 가 한다 (viewBox 단위라 화면이 좁아져도
+ * 그림째로 줄어들 뿐 이름표가 사라지지 않는다).
  *
  * 그림은 읽는 프로그램에서 숨기고, 같은 내용을 아래 숨은 목록이 글자로 갖는다.
- * 손을 올릴 수 없는 기기에서도 이 목록은 읽힌다.
  */
 export function VirtueDonut({ rows }: { rows: readonly VirtueRatioRow[] }) {
   if (rows.length === 0) {
@@ -114,68 +118,61 @@ export function VirtueDonut({ rows }: { rows: readonly VirtueRatioRow[] }) {
         className="mx-auto block w-full max-w-[360px]"
         aria-hidden
       >
+        {arcs.map((arc) => (
+          <circle
+            key={arc.virtue}
+            cx={DONUT_CX}
+            cy={DONUT_CY}
+            r={DONUT_R}
+            fill="none"
+            stroke={`var(${VIRTUE_META[arc.virtue].colorVar})`}
+            strokeWidth={DONUT_STROKE}
+            /* 조각 하나를 그리고 나머지 둘레는 비운다. 호 좌표를 직접 계산하는
+               것보다 이음매가 깨끗하고, 100%가 한 조각일 때도 그대로 그려진다 */
+            strokeDasharray={`${arc.length} ${circumference - arc.length}`}
+            strokeDashoffset={-arc.offset}
+            /* 12시에서 시작해 시계 방향으로 */
+            transform={`rotate(-90 ${DONUT_CX} ${DONUT_CY})`}
+          />
+        ))}
+
+        {/* 지시선을 먼저 다 깔고 그 위에 글자를 얹는다. 선이 이웃 이름표를
+            가로지를 때 글자가 선에 눌리지 않게 하려는 것이다 */}
+        {arcs.map((arc) => (
+          <polyline
+            key={arc.virtue}
+            points={arc.label.leader.map((point) => `${point.x},${point.y}`).join(" ")}
+            fill="none"
+            stroke="var(--color-line)"
+            strokeWidth="1"
+          />
+        ))}
+
         {arcs.map((arc) => {
           const meta = VIRTUE_META[arc.virtue];
           const { label } = arc;
 
           return (
-            /* 손을 올리는 대상은 이 묶음이다. 칠해진 조각 위에서만 반응한다 */
-            <g key={arc.virtue} className="group">
-              <circle
-                cx={DONUT_CX}
-                cy={DONUT_CY}
-                r={DONUT_R}
-                fill="none"
-                stroke={`var(${meta.colorVar})`}
-                strokeWidth={DONUT_STROKE}
-                /* 조각 하나를 그리고 나머지 둘레는 비운다. 호 좌표를 직접 계산하는
-                   것보다 이음매가 깨끗하고, 100%가 한 조각일 때도 그대로 그려진다 */
-                strokeDasharray={`${arc.length} ${circumference - arc.length}`}
-                strokeDashoffset={-arc.offset}
-                /* 12시에서 시작해 시계 방향으로 */
-                transform={`rotate(-90 ${DONUT_CX} ${DONUT_CY})`}
-              />
-
-              <g
-                className={
-                  label.hidden
-                    ? "opacity-0 transition-opacity group-hover:opacity-100"
-                    : undefined
-                }
+            <g key={arc.virtue}>
+              <text
+                x={label.x}
+                y={label.y - 2}
+                textAnchor={label.anchor}
+                fill={`var(${meta.colorVar})`}
+                fontSize="12"
               >
-                {/* 접힌 이름표는 이웃 위로 올라오므로 뒤에 판을 깐다 */}
-                {label.hidden && (
-                  <rect
-                    x={label.box.x - 4}
-                    y={label.box.y - 2}
-                    width={label.box.width + 8}
-                    height={label.box.height + 4}
-                    rx="4"
-                    fill="var(--color-surface)"
-                    stroke="var(--color-line)"
-                  />
-                )}
-
-                <text
-                  x={label.x}
-                  y={label.y - 2}
-                  textAnchor={label.anchor}
-                  fill={`var(${meta.colorVar})`}
-                  fontSize="12"
-                >
-                  {meta.nameKo}
-                </text>
-                <text
-                  x={label.x}
-                  y={label.y + 12}
-                  textAnchor={label.anchor}
-                  fill="var(--color-muted)"
-                  fontSize="11"
-                  className="num"
-                >
-                  {arc.ratio}%
-                </text>
-              </g>
+                {meta.nameKo}
+              </text>
+              <text
+                x={label.x}
+                y={label.y + 12}
+                textAnchor={label.anchor}
+                fill="var(--color-muted)"
+                fontSize="11"
+                className="num"
+              >
+                {arc.ratio}%
+              </text>
             </g>
           );
         })}

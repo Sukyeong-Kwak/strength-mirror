@@ -7,6 +7,7 @@ import {
   HEATMAP_RATIO_MIN_AREA,
 } from "@/lib/constants";
 import { buildHeatmap, tintPercent, type HeatmapTile } from "@/lib/heatmap";
+import { getStrength } from "@/lib/strengths";
 import type { Rect } from "@/lib/treemap";
 import type { StrengthRatioRow } from "@/types/domain";
 
@@ -133,10 +134,64 @@ export function StrengthHeatmap({
         />
       </div>
 
+      <SmallTiles tiles={blocks.flatMap((block) => block.tiles)} />
+
       <p className="mt-3 text-sm text-muted">
-        옅은 칸은 5%에 못 미친 강점, 빈 칸은 아직 아무도 고르지 않은 강점이에요.
-        자리를 남기느라 실제보다 조금 크게 그렸어요.
+        작은 칸도 자리를 남기느라 실제 비율보다 조금 크게 그렸어요.
       </p>
+    </div>
+  );
+}
+
+/**
+ * 판에서 이름이 안 보이는 칸들.
+ *
+ * 5% 눈금 아래로 내려간 강점은 칸이 20px 남짓이라 글자가 들어가지 않는다.
+ * 판 위에서는 옅은 색과 빈 칸으로 "여기 뭔가 있다" 까지만 말할 수 있고,
+ * 그게 무엇인지는 말하지 못한다. 그래서 이름을 판 아래에 글자로 적는다.
+ *
+ * 손을 올리면 나오게 하지 않는다. 이 앱은 손가락으로 쓰는 앱이라
+ * hover 가 없는 기기에서는 그 이름을 볼 방법이 사라진다.
+ *
+ * 두 줄로 나누는 것은 판이 이미 두 색으로 갈라 놓았기 때문이다.
+ * 적게 받은 것과 아직 아무도 안 고른 것은 다른 이야기다 —
+ * 앞은 누군가 봐준 것이고, 뒤는 아직 아무도 못 본 것이다.
+ */
+function SmallTiles({ tiles }: { tiles: readonly HeatmapTile[] }) {
+  // VIA 표의 차례로 적는다. 판의 자리 순서로 적으면 읽는 차례가 들쭉날쭉하다
+  const unlabelled = tiles
+    .filter((tile) => tile.ratio === 0)
+    .sort(
+      (a, b) =>
+        getStrength(a.strengthCode).order - getStrength(b.strengthCode).order,
+    );
+
+  const traces = unlabelled.filter((tile) => tile.received);
+  const empties = unlabelled.filter((tile) => !tile.received);
+
+  if (unlabelled.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="mt-4 flex flex-col gap-3 rounded-base border border-line bg-surface px-4 py-3">
+      {traces.length > 0 && (
+        <div>
+          <p className="text-sm text-muted">옅은 칸 · 5%에 못 미쳤어요</p>
+          <p className="mt-1 text-base">
+            {traces.map((tile) => tile.nameKo).join(" · ")}
+          </p>
+        </div>
+      )}
+
+      {empties.length > 0 && (
+        <div>
+          <p className="text-sm text-muted">빈 칸 · 아직 아무도 고르지 않았어요</p>
+          <p className="mt-1 text-base text-muted">
+            {empties.map((tile) => tile.nameKo).join(" · ")}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

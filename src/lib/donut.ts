@@ -1,17 +1,22 @@
 /**
  * 덕목 도넛의 조각과 이름표 자리.
  *
- * 이름표를 도넛 밖에 줄줄이 늘어놓지 않고 조각 옆에 붙인다. 색과 이름을
+ * 이름표를 그림 밖에 줄줄이 늘어놓지 않고 조각마다 붙인다. 색과 이름을
  * 눈으로 잇는 일(범례 왕복)이 사라지면 그림 하나만 보면 된다.
  *
- * 대신 자리가 모자란다. 조각이 작으면 그 옆 이름표가 이웃 이름표와 겹친다.
- * 겹치는 것은 접고(hidden), 접은 것은 조각에 손을 올리면 나온다.
- * 큰 조각부터 자리를 잡는다 — 접히더라도 작은 쪽이 접혀야 한다.
+ * 여섯 개를 언제나 다 보여준다. 처음에는 자리가 없으면 접어두고 손을 올리면
+ * 나오게 했는데, 이 앱은 손가락으로 쓰는 앱이다. 마우스가 없는 기기에는
+ * hover 가 아예 없으므로 접는 순간 그 덕목은 볼 방법이 사라진다.
+ *
+ * 그래서 접는 대신 밀어낸다. 이름표를 도넛 양옆 두 줄에 세우고, 겹치는
+ * 것끼리 위아래로 밀어 띄운 다음, 밀려난 이름표와 제 조각을 지시선으로
+ * 잇는다. 자리가 밀려도 어느 조각의 이름인지는 선이 말해준다.
  *
  * 글자 폭은 재지 않고 글자 수로 어림잡는다. 서버에서 그리는 그림이라
- * 실제 폭을 알 방법이 없다. 넉넉하게 잡아서 겹치느니 접히는 쪽으로 기운다.
+ * 실제 폭을 알 방법이 없다. 넉넉하게 잡는 쪽으로 기운다.
  *
- * 좌표는 전부 viewBox 단위다. 화면 크기와 무관하게 같은 이름표가 나온다.
+ * 좌표는 전부 viewBox 단위다. 화면이 좁아지면 그림째로 줄어들 뿐,
+ * 좁은 기기에서만 이름표가 사라지는 일은 없다.
  */
 
 import type { VirtueRatioRow } from "@/types/domain";
@@ -28,28 +33,32 @@ export const DONUT_CY = DONUT_HEIGHT / 2;
 export const DONUT_R = 58;
 export const DONUT_STROKE = 30;
 
-/** 이름표가 앉는 반지름. 고리 바깥에 둔다 */
-const LABEL_R = DONUT_R + DONUT_STROKE / 2 + 12;
+/** 고리 바깥 테두리 */
+const OUTER_R = DONUT_R + DONUT_STROKE / 2;
+/** 지시선이 방향을 트는 자리 */
+const ELBOW_R = OUTER_R + 10;
+/** 이름표 줄이 서는 자리. 도넛에서 이만큼 떨어뜨린다 */
+const COLUMN_GAP = 16;
 
 /** 어림잡는 글자 폭 (viewBox 단위) */
 const NAME_SIZE = 12;
 const PCT_SIZE = 11;
 const SPACE_WIDTH = 4;
 
-/** 이름표 한 덩이의 높이 — 이름 한 줄과 퍼센트 한 줄 */
+/** 이름표 한 덩이 — 이름 한 줄과 퍼센트 한 줄 */
 const LABEL_HEIGHT = 26;
 /** 이름표끼리 이만큼은 떨어져 있어야 붙어 보이지 않는다 */
-const LABEL_MARGIN = 2;
+const LABEL_MARGIN = 4;
+const MIN_GAP = LABEL_HEIGHT + LABEL_MARGIN;
+
 /** 그림판 가장자리에서 이만큼 안쪽에 있어야 한다 */
 const CANVAS_PAD = 4;
+const COLUMN_TOP = CANVAS_PAD + LABEL_HEIGHT / 2;
+const COLUMN_BOTTOM = DONUT_HEIGHT - CANVAS_PAD - LABEL_HEIGHT / 2;
 
-/**
- * 세로에 가까운 자리에서는 가운데 정렬로 둔다.
- * 12시·6시 쪽 이름표를 한쪽으로 붙이면 도넛이 기울어 보인다.
- */
-const MIDDLE_ANCHOR_COS = 0.2;
+export type LabelAnchor = "start" | "end";
 
-export type LabelAnchor = "start" | "middle" | "end";
+export type Point = { x: number; y: number };
 
 export type DonutArc = {
   virtue: VirtueCode;
@@ -62,40 +71,42 @@ export type DonutArc = {
     x: number;
     y: number;
     anchor: LabelAnchor;
-    /** 이름표 뒤에 깔 판. 접힌 이름표가 조각 위로 나올 때 쓴다 */
-    box: { x: number; y: number; width: number; height: number };
-    /** 자리가 없어 접었다. 조각에 손을 올려야 나온다 */
-    hidden: boolean;
+    /** 조각에서 이름표까지 잇는 선. 꺾이는 점을 포함해 세 점이다 */
+    leader: readonly [Point, Point, Point];
   };
 };
 
 /** 글자 수로 어림잡은 이름표 폭 */
-function labelWidth(nameKo: string, ratio: number): number {
-  const letters = [...nameKo].filter((ch) => ch !== " ").length;
-  const spaces = [...nameKo].length - letters;
+export function labelWidth(nameKo: string, ratio: number): number {
+  const glyphs = [...nameKo];
+  const letters = glyphs.filter((ch) => ch !== " ").length;
+  const spaces = glyphs.length - letters;
   const nameWidth = letters * NAME_SIZE + spaces * SPACE_WIDTH;
   const pctWidth = (`${ratio}`.length + 1) * (PCT_SIZE * 0.6);
   return Math.max(nameWidth, pctWidth);
 }
 
-type Box = { x: number; y: number; width: number; height: number };
+/**
+ * 한 줄에 선 이름표들을 위아래로 밀어 띄운다.
+ *
+ * 위에서 아래로 한 번 밀고, 아래 벽을 넘은 만큼 다시 위로 되민다.
+ * 두 번이면 끝난다 — 이름표가 많아야 여섯이고 줄 높이가 넉넉하기 때문이다
+ * (여섯이 한 줄에 다 몰려도 5 × 30 = 150 < 216).
+ */
+function spreadColumn(entries: { index: number; y: number }[]): void {
+  entries.sort((a, b) => a.y - b.y);
 
-function overlaps(a: Box, b: Box): boolean {
-  return (
-    a.x < b.x + b.width + LABEL_MARGIN &&
-    b.x < a.x + a.width + LABEL_MARGIN &&
-    a.y < b.y + b.height + LABEL_MARGIN &&
-    b.y < a.y + a.height + LABEL_MARGIN
-  );
-}
+  let floor = COLUMN_TOP;
+  for (const entry of entries) {
+    entry.y = Math.max(entry.y, floor);
+    floor = entry.y + MIN_GAP;
+  }
 
-function insideCanvas(box: Box): boolean {
-  return (
-    box.x >= CANVAS_PAD &&
-    box.y >= CANVAS_PAD &&
-    box.x + box.width <= DONUT_WIDTH - CANVAS_PAD &&
-    box.y + box.height <= DONUT_HEIGHT - CANVAS_PAD
-  );
+  let ceiling = COLUMN_BOTTOM;
+  for (const entry of [...entries].reverse()) {
+    entry.y = Math.min(entry.y, ceiling);
+    ceiling = entry.y - MIN_GAP;
+  }
 }
 
 /**
@@ -107,63 +118,86 @@ function insideCanvas(box: Box): boolean {
 export function buildDonut(rows: readonly VirtueRatioRow[]): DonutArc[] {
   const circumference = 2 * Math.PI * DONUT_R;
 
-  const placed = rows.map((row, index) => {
+  const slices = rows.map((row, index) => {
     const before = rows
       .slice(0, index)
       .reduce((sum, earlier) => sum + earlier.ratio, 0);
 
     // 12시에서 시작해 시계 방향. 조각 한가운데에 이름표를 건다
-    const midRatio = before + row.ratio / 2;
-    const angle = ((midRatio / 100) * 360 - 90) * (Math.PI / 180);
+    const angle = (((before + row.ratio / 2) / 100) * 360 - 90) * (Math.PI / 180);
     const cos = Math.cos(angle);
-
-    const x = DONUT_CX + LABEL_R * cos;
-    const y = DONUT_CY + LABEL_R * Math.sin(angle);
-
-    const anchor: LabelAnchor =
-      Math.abs(cos) < MIDDLE_ANCHOR_COS ? "middle" : cos > 0 ? "start" : "end";
-
-    const width = labelWidth(VIRTUE_META[row.virtue].nameKo, row.ratio);
-    const box: Box = {
-      x: anchor === "start" ? x : anchor === "end" ? x - width : x - width / 2,
-      y: y - LABEL_HEIGHT / 2,
-      width,
-      height: LABEL_HEIGHT,
-    };
+    const sin = Math.sin(angle);
 
     return {
       virtue: row.virtue,
       ratio: row.ratio,
       length: (row.ratio / 100) * circumference,
       offset: (before / 100) * circumference,
-      label: { x, y, anchor, box },
+      /* 12시·6시 쪽(cos ≈ 0)은 어느 줄에 세워도 되므로 오른쪽으로 보낸다 */
+      side: cos >= 0 ? ("right" as const) : ("left" as const),
+      edge: { x: DONUT_CX + OUTER_R * cos, y: DONUT_CY + OUTER_R * sin },
+      elbow: { x: DONUT_CX + ELBOW_R * cos, y: DONUT_CY + ELBOW_R * sin },
+      /** 밀어내기 전, 조각이 원하는 높이 */
+      idealY: DONUT_CY + ELBOW_R * sin,
     };
   });
 
   /*
-    큰 조각부터 자리를 맡는다. 앞선 이름표와 겹치거나 그림판을 벗어나면 접는다.
-    같은 비율이면 먼저 온 덕목이 앞선다 — 그래야 같은 숫자에서 같은 그림이 나온다.
+    이름표는 조각 옆이 아니라 도넛 양옆 두 줄에 세운다.
+    조각을 따라 비스듬히 놓으면 밀어냈을 때 도넛 위로 올라탄다.
   */
-  const priority = placed
-    .map((arc, index) => ({ arc, index }))
-    .sort((a, b) =>
-      b.arc.ratio === a.arc.ratio ? a.index - b.index : b.arc.ratio - a.arc.ratio,
-    );
+  const columnX = {
+    right: DONUT_CX + OUTER_R + COLUMN_GAP,
+    left: DONUT_CX - OUTER_R - COLUMN_GAP,
+  };
 
-  const taken: Box[] = [];
-  const hidden = new Set<number>();
+  const byIndex = new Map<number, number>();
+  for (const side of ["right", "left"] as const) {
+    const entries = slices
+      .map((slice, index) => ({ slice, index }))
+      .filter(({ slice }) => slice.side === side)
+      .map(({ slice, index }) => ({ index, y: slice.idealY }));
 
-  for (const { arc, index } of priority) {
-    const box = arc.label.box;
-    if (!insideCanvas(box) || taken.some((other) => overlaps(box, other))) {
-      hidden.add(index);
-      continue;
+    spreadColumn(entries);
+    for (const entry of entries) {
+      byIndex.set(entry.index, entry.y);
     }
-    taken.push(box);
   }
 
-  return placed.map((arc, index) => ({
-    ...arc,
-    label: { ...arc.label, hidden: hidden.has(index) },
-  }));
+  return slices.map((slice, index) => {
+    const y = byIndex.get(index) ?? slice.idealY;
+    const x = columnX[slice.side];
+    const anchor: LabelAnchor = slice.side === "right" ? "start" : "end";
+    // 선 끝이 글자에 닿지 않게 조금 앞에서 멈춘다
+    const tip = slice.side === "right" ? x - 5 : x + 5;
+
+    return {
+      virtue: slice.virtue,
+      ratio: slice.ratio,
+      length: slice.length,
+      offset: slice.offset,
+      label: {
+        x,
+        y,
+        anchor,
+        leader: [slice.edge, slice.elbow, { x: tip, y }] as const,
+      },
+    };
+  });
+}
+
+/** 이름표가 실제로 차지하는 네모. 겹침 검사와 테스트가 쓴다 */
+export function labelBox(arc: DonutArc): {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+} {
+  const width = labelWidth(VIRTUE_META[arc.virtue].nameKo, arc.ratio);
+  return {
+    x: arc.label.anchor === "start" ? arc.label.x : arc.label.x - width,
+    y: arc.label.y - LABEL_HEIGHT / 2,
+    width,
+    height: LABEL_HEIGHT,
+  };
 }
