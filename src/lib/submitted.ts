@@ -167,19 +167,6 @@ export function saveSubmissions(list: readonly MySubmission[]): void {
   notify();
 }
 
-export function getAuthorName(): string {
-  return readRaw(STORAGE_KEYS.authorName) ?? "";
-}
-
-export function getAuthorNameOnServer(): string {
-  return "";
-}
-
-export function saveAuthorName(name: string): void {
-  writeRaw(STORAGE_KEYS.authorName, name.trim());
-  notify();
-}
-
 export function getMyGroup(): string | null {
   return readRaw(STORAGE_KEYS.myGroup);
 }

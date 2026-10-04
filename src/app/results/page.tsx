@@ -3,13 +3,11 @@ import Link from "next/link";
 
 import { buttonClass } from "@/components/Button";
 import { ResultChart, ViewToggle } from "@/features/results/ResultChart";
-import { LockedNotice } from "@/features/results/LockedNotice";
 import { UNASSIGNED_GROUP_LABEL } from "@/lib/constants";
 import { listPeople } from "@/lib/data/people";
 import {
   getGroupStrengthRatio,
   getOverallStrengthRatio,
-  getResultsStatus,
 } from "@/lib/data/results";
 import { collectGroupNames } from "@/lib/groups";
 import { josa } from "@/lib/korean";
@@ -30,6 +28,7 @@ const ALL_GROUPS = "전체";
  * 전체 통계 (13단계).
  *
  * 개인 결과와 같은 차트를 쓰고, 무엇을 집계했는지만 다르다.
+ * 언제든 열린다. 아직 받은 강점이 없으면 차트가 빈 상태를 보여준다.
  *
  * 조별 보기는 조 이름이 있는 사람만 볼 수 있다. '미지정' 은 DB 에서
  * group_name 이 null 이라 조별 뷰가 묶지 않는다. 목록에서 빼서
@@ -38,22 +37,6 @@ const ALL_GROUPS = "전체";
 export default async function ResultsPage({ searchParams }: ResultsPageProps) {
   const { view: rawView, group: rawGroup } = await searchParams;
   const view: ChartView = pickChartView(rawView);
-
-  const status = await getResultsStatus();
-
-  if (!status.unlocked) {
-    return (
-      <main className="mx-auto w-full max-w-3xl px-4 py-6">
-        <Link href="/" className={buttonClass("secondary", false, "sm")}>
-          명단으로
-        </Link>
-        <h1 className="mt-4 text-2xl">전체 집계</h1>
-        <div className="mt-6">
-          <LockedNotice remaining={status.remaining} />
-        </div>
-      </main>
-    );
-  }
 
   const people = await listPeople();
   const groups = collectGroupNames(people).filter(

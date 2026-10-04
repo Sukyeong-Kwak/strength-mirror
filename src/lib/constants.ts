@@ -15,10 +15,7 @@ export const MIN_REASON_LENGTH = 10;
  */
 export const MAX_REASON_LENGTH = 500;
 
-/** 작성자 이름 최대 길이. DB 의 CHECK 과 같은 값이어야 한다 */
-export const MAX_AUTHOR_NAME_LENGTH = 20;
-
-/** 결과 공개 게이트 — 한 사람이 받아야 할 최소 강점 선택 수 (4장) */
+/** 한 사람이 받으면 좋은 강점 수. 관리자 수신 현황에서 "완료" 기준으로 쓴다 */
 export const MIN_STRENGTHS_PER_PERSON = 5;
 
 /** 조가 지정되지 않은 인원을 묶어 부르는 이름 (5-9) */
@@ -31,14 +28,10 @@ export const UNASSIGNED_GROUP_LABEL = "미지정";
  * 서버에 묻지 않는 이유는, 기기를 식별하려면 그 값을 어차피
  * localStorage 에 둬야 하고 그러면 저장소를 지울 때 같이 사라지기 때문이다.
  * 서버에 제출자 식별값을 남기지 않는 편이 낫다.
- *
- * authorName 은 직전에 적은 이름이다. 강점을 하나씩 남기는 흐름이라
- * 매번 다시 적게 하면 결국 아무도 이름을 적지 않는다.
  */
 export const STORAGE_KEYS = {
   submitted: "via:submitted:v1",
   myGroup: "via:myGroup:v1",
-  authorName: "via:authorName:v1",
   draftPrefix: "via:draft:",
 } as const;
 

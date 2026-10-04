@@ -70,13 +70,6 @@ export function pickChartView(
   return isChartView(raw) && allowed.includes(raw) ? raw : fallback;
 }
 
-/** 결과 공개 게이트 상태. 이름도 개인별 건수도 들어 있지 않다 */
-export type ResultsStatus = {
-  unlocked: boolean;
-  /** 아직 5개를 못 채운 사람 수 */
-  remaining: number;
-};
-
 /** 목록·카드에서 쓰는 사람 정보. created_by 는 anon 에게 내려오지 않는다 */
 export type Person = {
   id: string;
@@ -97,8 +90,6 @@ export type ReasonEntry = {
   personId: string;
   strengthCode: StrengthCode;
   reason: string;
-  /** 비어 있으면 익명 */
-  authorName: string | null;
   createdAt: string;
 };
 
@@ -112,7 +103,7 @@ export type PersonTotals = {
   strengthCount: number;
   /**
    * 숨긴 사람인지.
-   * 숨기면 목록·집계·결과 공개 게이트에서 빠지지만 받은 글은 남는다.
+   * 숨기면 목록·집계·결과에서 빠지지만 받은 글은 남는다.
    */
   hidden: boolean;
 };

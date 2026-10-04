@@ -4,12 +4,10 @@ import { notFound } from "next/navigation";
 
 import { buttonClass } from "@/components/Button";
 import { ResultChart } from "@/features/results/ResultChart";
-import { LockedNotice } from "@/features/results/LockedNotice";
 import { getPerson } from "@/lib/data/people";
 import {
   getPersonReasons,
   getPersonStrengthRatio,
-  getResultsStatus,
 } from "@/lib/data/results";
 import { toGroupLabel } from "@/lib/groups";
 import { findStrength } from "@/lib/strengths";
@@ -29,8 +27,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /**
  * 개인 결과 (12단계).
  *
- * 게이트가 잠겨 있으면 뷰가 행을 아예 내려주지 않는다.
- * 여기서 unlocked 를 보는 것은 "왜 비어 있는지" 를 설명하기 위해서다.
+ * 누구의 결과든 언제든 볼 수 있다.
+ * 남긴 사람은 모두 익명이다. 서버가 이름을 애초에 내려주지 않는다.
  */
 export default async function PersonResultPage({ params }: ResultPageProps) {
   const { id } = await params;
@@ -41,22 +39,6 @@ export default async function PersonResultPage({ params }: ResultPageProps) {
   const person = await getPerson(id);
   if (person === null) {
     notFound();
-  }
-
-  const status = await getResultsStatus();
-
-  if (!status.unlocked) {
-    return (
-      <main className="mx-auto w-full max-w-3xl px-4 py-6">
-        <Link href={`/p/${person.id}`} className={buttonClass("secondary", false, "sm")}>
-          돌아가기
-        </Link>
-        <h1 className="mt-4 text-2xl">{person.name}님이 받은 강점</h1>
-        <div className="mt-6">
-          <LockedNotice remaining={status.remaining} />
-        </div>
-      </main>
-    );
   }
 
   const [strengthRows, reasons] = await Promise.all([
@@ -102,7 +84,7 @@ export default async function PersonResultPage({ params }: ResultPageProps) {
                     {entry.reason}
                   </p>
                   <p className="mt-2 text-sm text-muted">
-                    {entry.authorName ?? "익명"}
+                    익명
                     {entry.createdAt !== "" &&
                       ` · ${formatRelativeTime(entry.createdAt)}`}
                   </p>

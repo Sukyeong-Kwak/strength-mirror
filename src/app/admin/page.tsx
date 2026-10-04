@@ -4,12 +4,10 @@ import { buttonClass } from "@/components/Button";
 import { AdminShell } from "@/features/admin/AdminShell";
 import { ReceiptStatusTable } from "@/features/admin/ReceiptStatusTable";
 import { RecentActivity } from "@/features/admin/RecentActivity";
-import { UnlockStatusCard } from "@/features/admin/UnlockStatusCard";
 import {
   getAdminDisplayNames,
   getReceiptTotals,
   getRecentActivity,
-  getResultsStatus,
   requireAdmin,
 } from "@/lib/auth/dal";
 import { sortGroupNames } from "@/lib/groups";
@@ -20,16 +18,15 @@ export default async function AdminHomePage() {
   // 확인 결과는 cache() 에 담기므로 아래 조회들은 다시 확인하지 않는다
   const session = await requireAdmin();
 
-  const [allPeople, status, entries, labels] = await Promise.all([
+  const [allPeople, entries, labels] = await Promise.all([
     getReceiptTotals(),
-    getResultsStatus(),
     getRecentActivity(),
     getAdminDisplayNames(),
   ]);
 
   // 숨긴 사람은 현황에서 뺀다.
-  // DB 의 결과 공개 게이트도 숨긴 사람을 빼고 세므로, 여기서 넣으면
-  // "N명 미달" 과 실제 게이트가 서로 다른 말을 하게 된다.
+  // DB 의 집계 뷰도 숨긴 사람을 빼고 세므로, 여기서 넣으면
+  // 현황과 집계가 서로 다른 말을 하게 된다.
   // 숨긴 사람을 보고 되돌리는 것은 /admin/people 에서 한다
   const totals = allPeople.filter((row) => !row.hidden);
   const hiddenCount = allPeople.length - totals.length;
@@ -74,8 +71,6 @@ export default async function AdminHomePage() {
           </ul>
         )}
       </section>
-
-      <UnlockStatusCard unlocked={status.unlocked} totals={totals} />
 
       <ReceiptStatusTable totals={totals} registrarLabels={labels} />
 

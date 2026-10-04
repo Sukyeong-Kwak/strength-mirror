@@ -7,20 +7,15 @@ import { submitFeedback } from "@/actions/submitFeedback";
 import { Button, buttonClass } from "@/components/Button";
 import { Sheet } from "@/components/Sheet";
 import { StrengthInfo } from "@/features/strengths/StrengthInfo";
-import {
-  MAX_AUTHOR_NAME_LENGTH,
-  MAX_REASON_LENGTH,
-  MIN_REASON_LENGTH,
-} from "@/lib/constants";
+import { MAX_REASON_LENGTH, MIN_REASON_LENGTH } from "@/lib/constants";
 import { STRENGTHS_BY_VIRTUE, type Strength } from "@/lib/strengths";
 import {
   addSubmission,
   newSubmissionKey,
-  saveAuthorName,
   saveSubmissions,
   submittedCodesFor,
 } from "@/lib/submitted";
-import { useSavedAuthorName, useSubmissions } from "@/lib/useLocalStore";
+import { useSubmissions } from "@/lib/useLocalStore";
 import type { ActionResult, Person } from "@/types/domain";
 
 type StrengthBoardProps = {
@@ -38,21 +33,19 @@ type WriteStep = "write" | "confirm";
  *
  * 저장한 것은 고칠 수 없다. 그래서 저장 직전에 확인 단계를 한 번 둔다.
  * 이미 남긴 강점은 다시 고를 수 없게 막는다.
+ *
+ * 이름은 묻지 않는다. 결과는 누구나 볼 수 있으므로 남긴 사람은 모두 익명이다.
  */
 export function StrengthBoard({ person }: StrengthBoardProps) {
   const [info, setInfo] = useState<Strength | null>(null);
   const [writing, setWriting] = useState<Strength | null>(null);
   const [step, setStep] = useState<WriteStep>("write");
   const [reason, setReason] = useState("");
-  /** 이번에 직접 적은 이름. 안 건드렸으면 지난번에 적은 이름을 쓴다 */
-  const [typedName, setTypedName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<Strength | null>(null);
   const [pending, startTransition] = useTransition();
 
   const mine = useSubmissions();
-  const savedName = useSavedAuthorName();
-  const authorName = typedName ?? savedName;
 
   /**
    * 이 제출에 쓸 멱등 키.
@@ -101,7 +94,6 @@ export function StrengthBoard({ person }: StrengthBoardProps) {
         submissionKey: key,
         strengthCode: strength.code,
         reason: trimmedReason,
-        authorName: authorName.trim(),
       }).catch((): ActionResult => ({
         ok: false,
         error: "연결이 끊겼어요. 잠시 뒤 다시 눌러주세요",
@@ -121,7 +113,6 @@ export function StrengthBoard({ person }: StrengthBoardProps) {
           createdAt: new Date().toISOString(),
         }),
       );
-      saveAuthorName(authorName);
 
       setWriting(null);
       setSaved(strength);
@@ -256,19 +247,9 @@ export function StrengthBoard({ person }: StrengthBoardProps) {
                 ? `${MIN_REASON_LENGTH - trimmedReason.length}자 더 적어주세요`
                 : `${trimmedReason.length}자`}
             </p>
-
-            <label htmlFor="author" className="mt-5 block text-sm text-muted">
-              남기는 사람 (안 적으면 익명이에요)
-            </label>
-            <input
-              id="author"
-              type="text"
-              value={authorName}
-              onChange={(event) => setTypedName(event.target.value)}
-              maxLength={MAX_AUTHOR_NAME_LENGTH}
-              placeholder="익명"
-              className="mt-2 min-h-11 w-full rounded-base border border-line bg-surface px-4 py-3 text-base placeholder:text-muted"
-            />
+            <p className="mt-3 text-sm text-muted">
+              남긴 글은 누구나 볼 수 있고, 남긴 사람은 익명으로 보여요
+            </p>
 
             {error !== null && (
               <p className="mt-4 rounded-base border border-line bg-warn-surface px-4 py-3 text-sm text-warn">
@@ -299,12 +280,6 @@ export function StrengthBoard({ person }: StrengthBoardProps) {
                   {trimmedReason}
                 </dd>
               </div>
-              <div>
-                <dt className="text-sm text-muted">남기는 사람</dt>
-                <dd className="mt-1 text-base">
-                  {authorName.trim() === "" ? "익명" : authorName.trim()}
-                </dd>
-              </div>
             </dl>
           </div>
         )}
@@ -331,7 +306,7 @@ export function StrengthBoard({ person }: StrengthBoardProps) {
               {person.name}님에게 &lsquo;{saved.nameKo}&rsquo; 강점을 남겼어요.
             </p>
             <p className="mt-2 text-sm text-muted">
-              결과는 모두가 5개씩 받은 뒤에 함께 열려요.
+              받은 강점 보기에서 바로 확인할 수 있어요. 남긴 사람은 익명으로 보여요.
             </p>
           </div>
         )}

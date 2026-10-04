@@ -58,7 +58,7 @@ create table if not exists public.people (
   created_by  text null,
   -- 관리자가 숨긴 시각. null 이면 참여 대상이다.
   -- 잘못 등록했거나 빠진 사람을 목록·집계에서 빼되 받은 글은 지우지 않는다.
-  -- 숨긴 사람은 결과 공개 게이트에서도 빠진다. 안 그러면 한 명이 영영 막는다
+  -- 숨긴 사람은 결과와 집계에서도 빠진다
   hidden_at   timestamptz null,
   created_at  timestamptz not null default now()
 );
@@ -195,53 +195,17 @@ $$;
 
 
 -- ------------------------------------------------------------
--- 5. 결과 공개 게이트 (4장)
+-- 5. 결과 공개 게이트 — 없앴다
 --
--- 등록된 모든 사람이 각자 5개 이상의 강점을 받았을 때 비로소 열린다.
--- 한 명이라도 미달이면 누구의 그래프도 열리지 않는다.
+-- 처음에는 모두가 5개씩 받아야 결과가 열렸다. 지금은 전체 집계와
+-- 서로의 결과를 언제든 볼 수 있다. 대신 누가 남겼는지는 어디에도 내보내지 않는다.
+--
+-- 옛 함수를 지운다. cascade 라서 이 함수를 쓰던 뷰도 함께 지워지고,
+-- 아래 6장에서 게이트 없이 다시 만든다
 -- ------------------------------------------------------------
 
-create or replace function public.results_unlocked()
-returns boolean
-language sql
-security definer
-stable
-set search_path = ''
-as $$
-  with counts as (
-    select p.id, count(i.id) as strength_count
-    from public.people p
-    left join public.feedbacks f
-      on f.person_id = p.id and f.excluded_at is null
-    left join public.feedback_items i
-      on i.feedback_id = f.id
-    where p.hidden_at is null
-    group by p.id
-  )
-  select count(*) > 0 and count(*) filter (where strength_count >= 5) = count(*)
-  from counts;
-$$;
-
--- 아직 5개를 못 채운 사람 수만. 이름·건수는 절대 내보내지 않는다
-create or replace function public.results_remaining()
-returns int
-language sql
-security definer
-stable
-set search_path = ''
-as $$
-  with counts as (
-    select p.id, count(i.id) as strength_count
-    from public.people p
-    left join public.feedbacks f
-      on f.person_id = p.id and f.excluded_at is null
-    left join public.feedback_items i
-      on i.feedback_id = f.id
-    where p.hidden_at is null
-    group by p.id
-  )
-  select count(*)::int from counts where strength_count < 5;
-$$;
+drop function if exists public.results_unlocked() cascade;
+drop function if exists public.results_remaining() cascade;
 
 
 -- ------------------------------------------------------------
@@ -251,8 +215,8 @@ $$;
 --   *_internal : 건수 포함. anon SELECT 금지. 관리자만
 --   *_ratio    : 비율만. anon 이 읽는 공개 뷰. cnt 컬럼이 아예 없다
 --
--- 공개 뷰는 게이트가 닫혀 있으면 행 자체를 반환하지 않는다.
--- 앱에서 조건 분기하는 것으로는 부족하고, anon 키로 직접 조회해도 막혀야 한다.
+-- 공개 뷰는 언제나 열려 있다. 대신 작성자 이름은 어떤 공개 뷰에도 없다.
+-- 화면에서 가리는 것으로는 부족하고, anon 키로 직접 조회해도 나오지 않아야 한다.
 -- ------------------------------------------------------------
 
 drop view if exists public.feedback_items_active cascade;
@@ -276,7 +240,6 @@ select
   i.id                                    as item_id,
   i.strength_code,
   i.reason,
-  f.author_name,
   f.created_at
 from public.feedbacks f
 join public.people p         on p.id = f.person_id
@@ -323,12 +286,6 @@ from (
   group by coalesce(p.group_name, '미지정')
 ) t
 where public.assert_admin();
-
--- anon 이 읽는 유일한 상태 뷰. 컬럼은 두 개뿐이다
-create view public.results_status as
-select
-  public.results_unlocked() as unlocked,
-  public.results_remaining() as remaining;
 
 -- ------------------------------------------------------------
 -- 비율 눈금 — 5% 단위
@@ -387,8 +344,7 @@ select
   s.virtue,
   (r.base_units + case when r.rn <= r.leftover then 1 else 0 end) * 5 as ratio
 from ranked r
-join public.strengths s on s.code = r.strength_code
-where public.results_unlocked();
+join public.strengths s on s.code = r.strength_code;
 
 -- 개인 · 덕목별 비율
 create view public.person_virtue_ratio as
@@ -424,8 +380,7 @@ select
   person_id,
   virtue,
   (base_units + case when rn <= leftover then 1 else 0 end) * 5 as ratio
-from ranked
-where public.results_unlocked();
+from ranked;
 
 -- 전체 · 강점별 비율
 create view public.overall_strength_ratio as
@@ -458,8 +413,7 @@ select
   s.virtue,
   (r.base_units + case when r.rn <= r.leftover then 1 else 0 end) * 5 as ratio
 from ranked r
-join public.strengths s on s.code = r.strength_code
-where public.results_unlocked();
+join public.strengths s on s.code = r.strength_code;
 
 -- 전체 · 덕목별 비율
 create view public.overall_virtue_ratio as
@@ -492,8 +446,7 @@ ranked as (
 select
   virtue,
   (base_units + case when rn <= leftover then 1 else 0 end) * 5 as ratio
-from ranked
-where public.results_unlocked();
+from ranked;
 
 -- 조 · 강점별 비율
 create view public.group_strength_ratio as
@@ -529,8 +482,7 @@ select
   s.virtue,
   (r.base_units + case when r.rn <= r.leftover then 1 else 0 end) * 5 as ratio
 from ranked r
-join public.strengths s on s.code = r.strength_code
-where public.results_unlocked();
+join public.strengths s on s.code = r.strength_code;
 
 -- 조 · 덕목별 비율
 create view public.group_virtue_ratio as
@@ -566,20 +518,17 @@ select
   group_name,
   virtue,
   (base_units + case when rn <= leftover then 1 else 0 end) * 5 as ratio
-from ranked
-where public.results_unlocked();
+from ranked;
 
 -- 사유 목록.
--- 사유 카드 개수를 세면 그 사람이 받은 건수가 되므로 같은 게이트를 적용한다
+-- 누가 남겼는지(author_name)는 내보내지 않는다. 화면은 모두 익명으로 보여준다
 create view public.feedback_reasons_public as
 select
   person_id,
   strength_code,
   reason,
-  author_name,
   created_at
-from public.feedback_items_active
-where public.results_unlocked();
+from public.feedback_items_active;
 
 
 -- ------------------------------------------------------------
@@ -628,7 +577,6 @@ grant usage, select          on sequence public.admin_audit_log_id_seq to authen
 grant select, insert, delete on public.admin_allowlist to authenticated;
 
 -- 공개 뷰
-grant select on public.results_status          to anon, authenticated;
 grant select on public.person_strength_ratio   to anon, authenticated;
 grant select on public.person_virtue_ratio     to anon, authenticated;
 grant select on public.overall_strength_ratio  to anon, authenticated;
@@ -647,13 +595,9 @@ grant select on public.group_totals_internal  to authenticated;
 -- 함수 실행 권한
 revoke all on function public.is_admin()          from public, anon, authenticated;
 revoke all on function public.assert_admin()      from public, anon, authenticated;
-revoke all on function public.results_unlocked()  from public, anon, authenticated;
-revoke all on function public.results_remaining() from public, anon, authenticated;
 
 grant execute on function public.is_admin()          to authenticated;
 grant execute on function public.assert_admin()      to authenticated;
-grant execute on function public.results_unlocked()  to anon, authenticated;
-grant execute on function public.results_remaining() to anon, authenticated;
 
 
 -- ------------------------------------------------------------
@@ -964,12 +908,11 @@ notify pgrst, 'reload schema';
 -- ============================================================
 -- 실행 후 확인 (선택)
 --
---   select * from public.results_status;    -- unlocked=false, remaining=0
 --   select count(*) from public.strengths;  -- 24
 --   select * from public.admin_allowlist;   -- 본인 이메일 1건
 --
 --   -- 비율이 전부 5의 배수이고 사람별 합이 정확히 100 인지
 --   select person_id, sum(ratio) as total, bool_and(ratio % 5 = 0) as on_grid
 --   from public.person_strength_ratio group by person_id;
---   -- 게이트가 잠겨 있으면 0행이 나온다. 정상이다
+--   -- 받은 강점이 아직 없으면 0행이 나온다. 정상이다
 -- ============================================================

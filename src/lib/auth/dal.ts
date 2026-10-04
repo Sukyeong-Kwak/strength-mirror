@@ -10,7 +10,6 @@ import {
   type AdminActivity,
   type AdminEntry,
   type PersonTotals,
-  type ResultsStatus,
 } from "@/types/domain";
 
 import { getAdminSession, type AdminSession } from "./admin";
@@ -84,7 +83,7 @@ function toPersonTotals(row: PersonTotalsRow): PersonTotals | null {
  * ⚠ 숨긴 사람도 함께 돌려준다 (`hidden`).
  *   명단 관리 화면이 숨긴 사람을 보고 되돌려야 하기 때문이다.
  *   현황·집계에 쓸 때는 부르는 쪽에서 걸러야 한다.
- *   DB 의 결과 공개 게이트는 숨긴 사람을 빼고 세므로, 넣으면 화면과 어긋난다.
+ *   DB 의 집계 뷰는 숨긴 사람을 빼고 세므로, 넣으면 화면과 어긋난다.
  */
 export async function getReceiptTotals(): Promise<PersonTotals[]> {
   await requireAdmin();
@@ -136,26 +135,6 @@ export async function getPeopleForDedupe(): Promise<
     name: row.name,
     groupName: row.group_name,
   }));
-}
-
-/** 결과 공개 게이트 상태 */
-export async function getResultsStatus(): Promise<ResultsStatus> {
-  await requireAdmin();
-  const supabase = await createSupabaseServerClient();
-
-  const { data, error } = await supabase
-    .from("results_status")
-    .select("unlocked, remaining")
-    .maybeSingle();
-
-  if (error) {
-    throw new Error("공개 상태를 불러오지 못했어요");
-  }
-
-  return {
-    unlocked: data?.unlocked === true,
-    remaining: data?.remaining ?? 0,
-  };
 }
 
 /** 최근 활동. action 은 CHECK 제약이라 생성 타입이 string 이다. 아는 값만 통과시킨다 */

@@ -2,11 +2,7 @@
 
 import { z } from "zod";
 
-import {
-  MAX_AUTHOR_NAME_LENGTH,
-  MAX_REASON_LENGTH,
-  MIN_REASON_LENGTH,
-} from "@/lib/constants";
+import { MAX_REASON_LENGTH, MIN_REASON_LENGTH } from "@/lib/constants";
 import { getPerson } from "@/lib/data/people";
 import { isStrengthCode } from "@/lib/strengths";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -19,7 +15,7 @@ import type { ActionResult } from "@/types/domain";
  * 화면이 하나씩 확인받고 저장하는 흐름이라 항목이 항상 한 개다.
  *
  * 로그인하지 않은 사람이 부르는 유일한 쓰기 경로다.
- * 제출자를 식별하는 값은 보내지 않는다. 이름을 스스로 적었을 때만 남는다.
+ * 제출자를 식별하는 값은 보내지 않는다. 이름도 받지 않는다 — 모두 익명이다.
  */
 
 const SubmitInput = z.object({
@@ -28,8 +24,6 @@ const SubmitInput = z.object({
   submissionKey: z.uuid(),
   strengthCode: z.string().refine(isStrengthCode),
   reason: z.string().trim().min(MIN_REASON_LENGTH).max(MAX_REASON_LENGTH),
-  /** 비어 있으면 익명 */
-  authorName: z.string().trim().max(MAX_AUTHOR_NAME_LENGTH),
 });
 
 export async function submitFeedback(input: unknown): Promise<ActionResult> {
@@ -39,7 +33,7 @@ export async function submitFeedback(input: unknown): Promise<ActionResult> {
     return { ok: false, error: `사유를 ${MIN_REASON_LENGTH}자 이상 적어주세요` };
   }
 
-  const { personId, submissionKey, strengthCode, reason, authorName } = parsed.data;
+  const { personId, submissionKey, strengthCode, reason } = parsed.data;
 
   // 숨긴 사람에게는 남길 수 없다.
   // RPC 는 security definer 라 RLS 를 지나치므로 여기서 막아야 한다
@@ -54,7 +48,7 @@ export async function submitFeedback(input: unknown): Promise<ActionResult> {
   // 스키마 재실행 + npm run gen:types 뒤에 이 캐스팅을 지운다
   const args = {
     p_person_id: personId,
-    p_author_name: authorName === "" ? null : authorName,
+    p_author_name: null,
     p_submission_key: submissionKey,
     p_items: [{ code: strengthCode, reason }],
   } as never;

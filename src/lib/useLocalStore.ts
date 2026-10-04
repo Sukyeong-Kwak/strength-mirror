@@ -3,8 +3,6 @@
 import { useSyncExternalStore } from "react";
 
 import {
-  getAuthorName,
-  getAuthorNameOnServer,
   getMyGroup,
   getMyGroupOnServer,
   getSubmissions,
@@ -27,14 +25,6 @@ export function useSubmissions(): MySubmission[] {
     subscribeStorage,
     getSubmissions,
     getSubmissionsOnServer,
-  );
-}
-
-export function useSavedAuthorName(): string {
-  return useSyncExternalStore(
-    subscribeStorage,
-    getAuthorName,
-    getAuthorNameOnServer,
   );
 }
 
