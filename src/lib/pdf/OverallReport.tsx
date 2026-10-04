@@ -9,6 +9,7 @@ import {
   COLOR,
   DemoNote,
   Footer,
+  Heatmap,
   Section,
   VIRTUE_COLOR,
   VIRTUE_INK,
@@ -51,11 +52,15 @@ export function OverallReport({ data }: { data: OverallReportData }) {
           </Section>
         ) : (
           <>
+            {/* 사이트 모두의 강점의 두 보기를 차례로 싣는다 — 히트맵, 그리고 순위 */}
             <Section title="우리에게 주신 강점은?" lead="여섯 덕목으로 본, 우리 모임에 주신 강점이에요.">
-              <VirtueStrip segments={virtues} />
+              <Heatmap rows={data.overall} />
             </Section>
 
             <Section title="우리에게 많이 주신 강점">
+              <View style={{ marginBottom: 8 }}>
+                <VirtueStrip segments={virtues} />
+              </View>
               {charted.map((row) => (
                 <BarRow
                   key={row.strengthCode}
@@ -157,12 +162,10 @@ export function OverallReport({ data }: { data: OverallReportData }) {
                         <Text style={[s.h2, { fontSize: 13, marginBottom: 4 }]}>
                           {group.groupName}
                         </Text>
-                        <VirtueStrip
-                          segments={groupByVirtue(group.rows).map((g) => ({
-                            virtue: g.virtue,
-                            ratio: g.subtotal,
-                          }))}
-                        />
+                        {/* 조별 보기의 히트맵. 한 쪽에 조 하나가 들어가게 납작하게 그린다 */}
+                        <View style={{ marginBottom: 8 }}>
+                          <Heatmap rows={group.rows} aspect={2.4} />
+                        </View>
                       </View>
                       <View style={{ marginTop: 6 }}>
                         {split.charted.map((row) => (

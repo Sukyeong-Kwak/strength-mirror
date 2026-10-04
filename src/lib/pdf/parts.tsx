@@ -2,7 +2,14 @@ import path from "node:path";
 
 import { Font, StyleSheet, Text, View } from "@react-pdf/renderer";
 
+import {
+  HEATMAP_ASPECT,
+  HEATMAP_NAME_MIN_AREA,
+  HEATMAP_RATIO_MIN_AREA,
+} from "@/lib/constants";
+import { buildHeatmap, tintPercent } from "@/lib/heatmap";
 import { VIRTUE_META, getStrength, type StrengthCode, type VirtueCode } from "@/lib/strengths";
+import type { StrengthRatioRow } from "@/types/domain";
 
 /**
  * PDF 공통 부품 — 서체, 색, 막대, 섹션.
@@ -238,4 +245,151 @@ export function strengthName(code: StrengthCode): string {
 
 export function strengthNames(codes: readonly StrengthCode[]): string {
   return codes.map(strengthName).join(", ");
+}
+
+/** 덕목 색을 흰색과 섞는다 (sRGB). 화면의 color-mix(in srgb, …) 와 같은 계산이다 */
+function mixWithWhite(hex: string, percent: number): string {
+  const p = percent / 100;
+  const channel = (i: number) => {
+    const c = Number.parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16);
+    return Math.round(c * p + 255 * (1 - p))
+      .toString(16)
+      .padStart(2, "0");
+  };
+  return `#${channel(0)}${channel(1)}${channel(2)}`;
+}
+
+/** A4 본문 폭 (595pt − 좌우 여백 44pt × 2) */
+const CONTENT_WIDTH = 507;
+
+/**
+ * 히트맵 — 사이트의 히트맵(StrengthHeatmap)을 종이에 옮긴 것.
+ *
+ * 칸을 나누는 계산(buildHeatmap)과 색 진하기(tintPercent), 글자를 넣는 기준은
+ * 화면과 같은 것을 쓴다. 그리는 방법만 다르다.
+ */
+export function Heatmap({
+  rows,
+  aspect = HEATMAP_ASPECT,
+}: {
+  rows: readonly StrengthRatioRow[];
+  /** 가로 ÷ 세로. 조별 판은 더 납작하게 그려 한 쪽에 들어가게 한다 */
+  aspect?: number;
+}) {
+  const blocks = buildHeatmap(rows, aspect);
+  const maxRatio = Math.max(0, ...blocks.flatMap((b) => b.tiles.map((t) => t.ratio)));
+  const width = CONTENT_WIDTH;
+  const height = width / aspect;
+  // 화면과 같은 기준으로 글자를 넣되, 판 크기가 달라지면 넓이 기준도 그만큼 옮긴다
+  const scale = HEATMAP_ASPECT / aspect;
+
+  return (
+    <View>
+      <Text style={[s.small, s.muted, { marginBottom: 6 }]}>
+        칸 크기가 비율이에요. 색은 덕목이고, 스물네 칸을 합치면 100%예요.
+      </Text>
+      <View
+        style={{
+          position: "relative",
+          width,
+          height,
+          backgroundColor: COLOR.page,
+          borderRadius: 6,
+        }}
+      >
+        {blocks.map((block) => {
+          const bx = (block.rect.x / 100) * width;
+          const by = (block.rect.y / 100) * height;
+          const bw = (block.rect.w / 100) * width;
+          const bh = (block.rect.h / 100) * height;
+          return (
+            <View
+              key={block.virtue}
+              style={{ position: "absolute", left: bx, top: by, width: bw, height: bh, padding: 2 }}
+            >
+              <View style={{ position: "relative", width: "100%", height: "100%" }}>
+                {block.tiles.map((tile) => {
+                  const area = tile.area * scale;
+                  const showName = area >= HEATMAP_NAME_MIN_AREA;
+                  const showRatio = area >= HEATMAP_RATIO_MIN_AREA;
+                  const fill = tile.received
+                    ? {
+                        backgroundColor: mixWithWhite(
+                          VIRTUE_COLOR[tile.virtue],
+                          tintPercent(tile.ratio, maxRatio),
+                        ),
+                      }
+                    : { backgroundColor: "#ffffff", borderWidth: 0.5, borderColor: COLOR.line };
+                  return (
+                    <View
+                      key={tile.strengthCode}
+                      style={{
+                        position: "absolute",
+                        left: `${tile.rect.x}%`,
+                        top: `${tile.rect.y}%`,
+                        width: `${tile.rect.w}%`,
+                        height: `${tile.rect.h}%`,
+                        padding: 0.75,
+                      }}
+                    >
+                      <View
+                        style={{
+                          ...fill,
+                          width: "100%",
+                          height: "100%",
+                          borderRadius: 2,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          overflow: "hidden",
+                        }}
+                      >
+                        {showName && (
+                          <Text style={{ fontSize: 7, lineHeight: 1.2, textAlign: "center" }}>
+                            {tile.nameKo}
+                          </Text>
+                        )}
+                        {showRatio && (
+                          <Text style={{ fontSize: 6.5, lineHeight: 1.2 }}>{tile.ratio}%</Text>
+                        )}
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          );
+        })}
+      </View>
+      <View style={{ marginTop: 6 }}>
+        <VirtueLegend
+          segments={blocks
+            .filter((b) => b.subtotal > 0)
+            .map((b) => ({ virtue: b.virtue, ratio: b.subtotal }))}
+        />
+      </View>
+      <Text style={[s.small, s.muted, { marginTop: 4 }]}>
+        작은 칸도 자리를 남기느라 실제 비율보다 조금 크게 그렸어요.
+      </Text>
+    </View>
+  );
+}
+
+/** 덕목 이름과 비율만 한 줄로 */
+function VirtueLegend({
+  segments,
+}: {
+  segments: ReadonlyArray<{ virtue: VirtueCode; ratio: number }>;
+}) {
+  return (
+    <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+      {segments.map((seg) => (
+        <Text
+          key={seg.virtue}
+          style={{ fontSize: 8.5, color: VIRTUE_INK[seg.virtue], marginRight: 10 }}
+        >
+          {VIRTUE_META[seg.virtue].nameKo} {seg.ratio}%
+        </Text>
+      ))}
+    </View>
+  );
 }
