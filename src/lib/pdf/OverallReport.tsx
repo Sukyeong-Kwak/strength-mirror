@@ -1,7 +1,7 @@
 import { Document, Page, Text, View } from "@react-pdf/renderer";
 
 import type { OverallReportData } from "@/lib/data/reports";
-import { groupByVirtue, splitByVisibility } from "@/lib/ratio";
+import { groupByVirtue, rankStrengths, splitByVisibility } from "@/lib/ratio";
 import { STRENGTHS, VIRTUE_META } from "@/lib/strengths";
 
 import {
@@ -27,7 +27,9 @@ import {
  * 마지막 장에 사람마다 대표 강점 세 가지를 실어, 모임의 기념 명단처럼 쓸 수 있게 한다.
  */
 export function OverallReport({ data }: { data: OverallReportData }) {
-  const { charted, mentioned } = splitByVisibility(data.overall);
+  const { mentioned } = splitByVisibility(data.overall);
+  // 순위는 사이트와 같은 차례로 (같은 비율이면 VIA 표의 차례)
+  const charted = rankStrengths(data.overall);
   const virtues = groupByVirtue(data.overall).map((g) => ({
     virtue: g.virtue,
     ratio: g.subtotal,
@@ -147,7 +149,8 @@ export function OverallReport({ data }: { data: OverallReportData }) {
               <View style={s.section}>
                 {data.groupDetails.map((group, index) => {
                   const split = splitByVisibility(group.rows);
-                  const groupMax = split.charted[0]?.ratio ?? 100;
+                  const ranked = rankStrengths(group.rows);
+                  const groupMax = ranked[0]?.ratio ?? 100;
                   return (
                     // 조 하나는 한 쪽 안에 둔다. 머리와 막대가 다른 쪽으로 갈라지면 읽기 어렵다
                     <View key={group.groupName} style={{ marginBottom: 14 }} wrap={false}>
@@ -168,7 +171,7 @@ export function OverallReport({ data }: { data: OverallReportData }) {
                         </View>
                       </View>
                       <View style={{ marginTop: 6 }}>
-                        {split.charted.map((row) => (
+                        {ranked.map((row) => (
                           <BarRow
                             key={row.strengthCode}
                             label={strengthName(row.strengthCode)}

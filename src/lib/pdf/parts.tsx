@@ -216,7 +216,8 @@ export function VirtueStrip({
 }) {
   const visible = segments.filter((seg) => seg.ratio > 0);
   return (
-    <View>
+    // 띠와 범례를 한 덩어리로. 쪽이 바뀌며 갈라지면 무엇의 색인지 알 수 없다
+    <View wrap={false}>
       <View style={{ flexDirection: "row", height: 10, borderRadius: 5, overflow: "hidden" }}>
         {visible.map((seg) => (
           <View

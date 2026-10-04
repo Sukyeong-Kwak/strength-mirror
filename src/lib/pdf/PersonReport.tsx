@@ -1,7 +1,7 @@
 import { Document, Page, Text, View } from "@react-pdf/renderer";
 
 import type { PersonReportData, ReportMatch } from "@/lib/data/reports";
-import { groupByVirtue, splitByVisibility } from "@/lib/ratio";
+import { groupByVirtue, rankStrengths, splitByVisibility } from "@/lib/ratio";
 import { VIRTUE_META, getStrength, type StrengthCode } from "@/lib/strengths";
 import { alsoCalledLine, confusables, distinctionTitle } from "@/lib/strengthText";
 
@@ -28,7 +28,9 @@ import {
  */
 export function PersonReport({ data }: { data: PersonReportData }) {
   const subject = `${data.name}님`;
-  const { charted, mentioned } = splitByVisibility(data.rows);
+  const { mentioned } = splitByVisibility(data.rows);
+  // 순위는 사이트와 같은 차례로 (같은 비율이면 VIA 표의 차례)
+  const charted = rankStrengths(data.rows);
   const virtues = groupByVirtue(data.rows).map((g) => ({ virtue: g.virtue, ratio: g.subtotal }));
   const max = charted[0]?.ratio ?? 100;
 
@@ -97,6 +99,15 @@ export function PersonReport({ data }: { data: PersonReportData }) {
                   );
                 })}
               </View>
+              {/* 사이트 강점 카드의 마지막 줄과 같다 */}
+              {data.distinctive[0] !== undefined && (
+                <Text style={[s.small, s.muted]}>
+                  모두와 견줘 유독 많이 보인 강점 ·{" "}
+                  <Text style={[s.name, { fontSize: 11, color: COLOR.ink }]}>
+                    {strengthName(data.distinctive[0].code)}
+                  </Text>
+                </Text>
+              )}
             </Section>
 
             {data.distinctive.length > 0 && (
@@ -250,6 +261,10 @@ function StoryGroup({
             </Text>
           )}
           <Text>{entry.reason}</Text>
+          {/* 사이트는 "익명 · 3시간 전" 이다. 종이에는 지나간 시간 대신 날짜를 적는다 */}
+          <Text style={[s.small, s.muted]}>
+            익명{entry.createdAt !== "" ? ` · ${dateLabel(entry.createdAt)}` : ""}
+          </Text>
         </View>
       ))}
     </View>
@@ -296,4 +311,17 @@ function StrengthExplain({ code }: { code: StrengthCode }) {
       ))}
     </View>
   );
+}
+
+/** "10월 4일". 서버 시간대와 상관없이 한국 날짜로 적는다 */
+function dateLabel(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+  return new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
+    month: "long",
+    day: "numeric",
+  }).format(date);
 }

@@ -4,7 +4,7 @@ import type {
   VirtueRatioRow,
 } from "@/types/domain";
 
-import { VIRTUES, VIRTUE_META, type VirtueCode } from "./strengths";
+import { VIRTUES, VIRTUE_META, getStrength, type VirtueCode } from "./strengths";
 
 /**
  * 비율 계산 · 그룹핑 · 정렬.
@@ -54,6 +54,23 @@ export function splitByVisibility<T extends { ratio: number }>(
   }
 
   return { charted: sortByRatioDesc(charted), mentioned };
+}
+
+/**
+ * 순위표에 세울 강점 — 5% 이상만, 큰 순서로.
+ *
+ * 같은 비율이 여럿일 때 VIA 표의 차례로 갈라 세운다. 서버 뷰에는 ORDER BY 가
+ * 없어서, 비율만으로 세우면 10% 짜리 여섯 개가 새로 고칠 때마다 자리를 바꾼다.
+ * 화면(ResultChart)과 PDF 가 같은 차례를 쓰도록 여기 한 곳에 둔다.
+ */
+export function rankStrengths(rows: readonly StrengthRatioRow[]): StrengthRatioRow[] {
+  return rows
+    .filter((row) => row.ratio > 0)
+    .sort((a, b) =>
+      b.ratio === a.ratio
+        ? getStrength(a.strengthCode).order - getStrength(b.strengthCode).order
+        : b.ratio - a.ratio,
+    );
 }
 
 export function sumRatio(rows: readonly { ratio: number }[]): number {
