@@ -93,9 +93,6 @@ export async function getPersonReportData(personId: string): Promise<PersonRepor
 
 export type OverallReportData = {
   mode: AppMode;
-  peopleCount: number;
-  /** 받은 강점이 하나라도 있는 사람 수 */
-  receivedCount: number;
   overall: StrengthRatioRow[];
   profiles: GroupProfile[];
   /** 조마다 받은 강점 비율 — 화면의 조별 보기 */
@@ -119,8 +116,6 @@ export async function getOverallReportData(): Promise<OverallReportData> {
 
   return {
     mode,
-    peopleCount: people.length,
-    receivedCount: people.filter((p) => (allRatios.get(p.id) ?? []).length > 0).length,
     overall,
     profiles: groupProfiles(
       new Map(groups.map((g) => [g, byGroup.get(g) ?? []])),

@@ -42,8 +42,7 @@ export function OverallReport({ data }: { data: OverallReportData }) {
         <Text style={s.brand}>강점 발굴 · {todayLabel()}</Text>
         <Text style={s.title}>모두의 강점</Text>
         <Text style={s.subtitle}>
-          하나님이 우리 한 사람 한 사람에게 주신 강점을 함께 발견했어요. {data.peopleCount}명 중{" "}
-          {data.receivedCount}명이 강점을 받았어요
+          하나님이 우리 한 사람 한 사람에게 주신 강점을 함께 발견했어요.
         </Text>
 
         {data.overall.length === 0 ? (
