@@ -9,7 +9,7 @@
  * 안전하게 부를 수 있고 테스트가 쉽다.
  */
 
-import { STORAGE_KEYS } from "./constants";
+import { STORAGE_KEYS, draftStorageKey } from "./constants";
 import { isStrengthCode, type StrengthCode } from "./strengths";
 
 import type { MySubmission } from "@/types/domain";
@@ -86,6 +86,42 @@ export function submittedCodesFor(
   );
 }
 
+/** 쓰다 만 사유. 한 사람 안에서 강점 코드 → 글 */
+export type Drafts = Record<string, string>;
+
+/** 저장된 초안을 읽는다. 모양이 틀린 칸은 버린다 */
+export function parseDrafts(raw: string | null): Drafts {
+  if (raw === null) {
+    return {};
+  }
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      return {};
+    }
+    const out: Drafts = {};
+    for (const [code, text] of Object.entries(parsed)) {
+      if (isStrengthCode(code) && typeof text === "string" && text.trim() !== "") {
+        out[code] = text;
+      }
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+/** 한 칸을 바꾼다. 빈 글이면 그 칸을 지운다. 입력을 바꾸지 않는다 */
+export function withDraft(drafts: Drafts, code: string, text: string): Drafts {
+  const next = { ...drafts };
+  if (text.trim() === "") {
+    delete next[code];
+  } else {
+    next[code] = text;
+  }
+  return next;
+}
+
 // ------------------------------------------------------------
 // localStorage 접근 — 서버에서 불러도 터지지 않게 감싼다
 // ------------------------------------------------------------
@@ -110,6 +146,17 @@ function writeRaw(key: string, value: string): void {
     window.localStorage.setItem(key, value);
   } catch {
     // 용량 초과·차단. 저장에 실패해도 제출 자체는 이미 끝났다
+  }
+}
+
+function removeRaw(key: string): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    // 차단. 남은 초안은 다음에 덮어쓰인다
   }
 }
 
@@ -165,6 +212,27 @@ export function getSubmissionsOnServer(): MySubmission[] {
 export function saveSubmissions(list: readonly MySubmission[]): void {
   writeRaw(STORAGE_KEYS.submitted, JSON.stringify(list));
   notify();
+}
+
+/**
+ * 쓰다 만 사유 (5-10).
+ *
+ * 시트 바깥을 잘못 누르거나 뒤로 가기를 눌러도 쓰던 글이 남아야 한다.
+ * 같은 강점을 다시 열면 이어서 쓴다. 저장에 성공하면 지운다.
+ * 화면이 다시 그려질 필요가 없으므로 notify 하지 않는다
+ */
+export function readDraft(personId: string, code: string): string {
+  return parseDrafts(readRaw(draftStorageKey(personId)))[code] ?? "";
+}
+
+export function saveDraft(personId: string, code: string, text: string): void {
+  const key = draftStorageKey(personId);
+  const next = withDraft(parseDrafts(readRaw(key)), code, text);
+  if (Object.keys(next).length === 0) {
+    removeRaw(key);
+  } else {
+    writeRaw(key, JSON.stringify(next));
+  }
 }
 
 export function getMyGroup(): string | null {

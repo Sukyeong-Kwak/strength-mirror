@@ -28,6 +28,9 @@ export const UNASSIGNED_GROUP_LABEL = "미지정";
  * 서버에 묻지 않는 이유는, 기기를 식별하려면 그 값을 어차피
  * localStorage 에 둬야 하고 그러면 저장소를 지울 때 같이 사라지기 때문이다.
  * 서버에 제출자 식별값을 남기지 않는 편이 낫다.
+ *
+ * draftPrefix 뒤에 사람 id 를 붙여 쓰다 만 사유를 강점별로 둔다.
+ * 시트를 잘못 닫아도 글이 남게 하려는 것이다. 저장에 성공하면 지운다.
  */
 export const STORAGE_KEYS = {
   submitted: "via:submitted:v1",
@@ -38,9 +41,6 @@ export const STORAGE_KEYS = {
 export function draftStorageKey(personId: string): string {
   return `${STORAGE_KEYS.draftPrefix}${personId}`;
 }
-
-/** 초안 자동 저장 디바운스 (5-10) */
-export const DRAFT_DEBOUNCE_MS = 500;
 
 /** 막대 애니메이션 (6-5) */
 export const BAR_STAGGER_MS = 40;

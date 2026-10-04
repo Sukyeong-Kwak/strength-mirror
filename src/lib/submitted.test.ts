@@ -4,9 +4,11 @@ import {
   addSubmission,
   hasSubmitted,
   newSubmissionKey,
+  parseDrafts,
   parseSubmissions,
   submittedCodesFor,
   submittedPersonIds,
+  withDraft,
 } from "./submitted";
 
 import type { MySubmission } from "@/types/domain";
@@ -96,5 +98,33 @@ describe("newSubmissionKey", () => {
 
   it("부를 때마다 다르다", () => {
     expect(newSubmissionKey()).not.toBe(newSubmissionKey());
+  });
+});
+
+describe("parseDrafts", () => {
+  it("없거나 깨졌으면 빈 초안", () => {
+    expect(parseDrafts(null)).toEqual({});
+    expect(parseDrafts("{{{")).toEqual({});
+    expect(parseDrafts("[]")).toEqual({});
+  });
+
+  it("모르는 강점 코드와 빈 글은 버린다", () => {
+    expect(
+      parseDrafts(JSON.stringify({ kindness: "늘 먼저 챙겨줘요", nope: "x", humor: "", zest: "  " })),
+    ).toEqual({ kindness: "늘 먼저 챙겨줘요" });
+  });
+});
+
+describe("withDraft", () => {
+  it("글을 넣고, 비우면 그 칸을 지운다", () => {
+    const one = withDraft({}, "kindness", "늘 먼저");
+    expect(one).toEqual({ kindness: "늘 먼저" });
+    expect(withDraft(one, "kindness", "   ")).toEqual({});
+  });
+
+  it("입력을 바꾸지 않는다", () => {
+    const before = { kindness: "늘 먼저" };
+    withDraft(before, "humor", "웃겨요");
+    expect(before).toEqual({ kindness: "늘 먼저" });
   });
 });

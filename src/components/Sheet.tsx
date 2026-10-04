@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/Button";
 
@@ -24,6 +24,7 @@ type SheetProps = {
  */
 export function Sheet({ open, title, onClose, children, footer }: SheetProps) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const viewport = useVisibleViewport(open);
 
   /**
    * onClose 는 부모가 다시 그릴 때마다 새 함수다.
@@ -75,7 +76,12 @@ export function Sheet({ open, title, onClose, children, footer }: SheetProps) {
       role="dialog"
       aria-modal="true"
       aria-label={title}
-      className="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
+      className="fixed inset-x-0 top-0 z-50 flex h-dvh items-end justify-center sm:items-center"
+      style={
+        viewport === null
+          ? undefined
+          : { top: viewport.offsetTop, height: viewport.height }
+      }
     >
       <button
         type="button"
@@ -91,7 +97,7 @@ export function Sheet({ open, title, onClose, children, footer }: SheetProps) {
       <div
         ref={panelRef}
         tabIndex={-1}
-        className="relative flex max-h-[85vh] w-full max-w-lg flex-col rounded-t-2xl border border-line bg-surface outline-none sm:rounded-2xl"
+        className="relative flex max-h-[85%] w-full max-w-lg flex-col rounded-t-2xl border border-line bg-surface outline-none sm:rounded-2xl"
       >
         <div className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
           <h2 className="font-display text-lg">{title}</h2>
@@ -108,4 +114,45 @@ export function Sheet({ open, title, onClose, children, footer }: SheetProps) {
       </div>
     </div>
   );
+}
+
+type VisibleViewport = { height: number; offsetTop: number };
+
+/**
+ * 화면에서 실제로 보이는 영역 (키보드에 가리지 않은 부분).
+ *
+ * 휴대폰에서 사유를 쓰려고 키보드를 올리면 화면 높이는 그대로인 채
+ * 키보드가 그 위를 덮는다. 시트를 화면 아래에 붙여두면 '등록하기' 가
+ * 키보드 뒤로 숨어서, 키보드를 내려야만 누를 수 있다.
+ * 보이는 영역의 높이와 위치를 따라가면 버튼이 언제나 키보드 바로 위에 온다.
+ *
+ * 열려 있을 때만 듣는다. 지원하지 않는 브라우저에서는 null 이고 그때는 h-dvh 로 그린다.
+ */
+function useVisibleViewport(active: boolean): VisibleViewport | null {
+  const [viewport, setViewport] = useState<VisibleViewport | null>(null);
+
+  useEffect(() => {
+    const visual = typeof window === "undefined" ? undefined : window.visualViewport;
+    if (!active || visual === undefined || visual === null) {
+      return;
+    }
+
+    function update() {
+      if (visual === undefined || visual === null) {
+        return;
+      }
+      setViewport({ height: visual.height, offsetTop: visual.offsetTop });
+    }
+
+    update();
+    visual.addEventListener("resize", update);
+    visual.addEventListener("scroll", update);
+    return () => {
+      visual.removeEventListener("resize", update);
+      visual.removeEventListener("scroll", update);
+      setViewport(null);
+    };
+  }, [active]);
+
+  return viewport;
 }

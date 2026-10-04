@@ -12,6 +12,8 @@ import { STRENGTHS_BY_VIRTUE, type Strength } from "@/lib/strengths";
 import {
   addSubmission,
   newSubmissionKey,
+  readDraft,
+  saveDraft,
   saveSubmissions,
   submittedCodesFor,
 } from "@/lib/submitted";
@@ -33,6 +35,9 @@ type WriteStep = "write" | "confirm";
  *
  * 저장한 것은 고칠 수 없다. 그래서 저장 직전에 확인 단계를 한 번 둔다.
  * 이미 남긴 강점은 다시 고를 수 없게 막는다.
+ *
+ * 쓰던 사유는 강점마다 이 기기에 남겨둔다. 시트를 잘못 닫아도
+ * 같은 강점을 다시 누르면 이어서 쓴다.
  *
  * 이름은 묻지 않는다. 결과는 누구나 볼 수 있으므로 남긴 사람은 모두 익명이다.
  */
@@ -66,8 +71,15 @@ export function StrengthBoard({ person }: StrengthBoardProps) {
     submissionKey.current = newSubmissionKey();
     setWriting(strength);
     setStep("write");
-    setReason("");
+    setReason(readDraft(person.id, strength.code));
     setError(null);
+  }
+
+  function changeReason(next: string) {
+    setReason(next);
+    if (writing !== null) {
+      saveDraft(person.id, writing.code, next);
+    }
   }
 
   function closeWrite() {
@@ -113,6 +125,7 @@ export function StrengthBoard({ person }: StrengthBoardProps) {
           createdAt: new Date().toISOString(),
         }),
       );
+      saveDraft(person.id, strength.code, "");
 
       setWriting(null);
       setSaved(strength);
@@ -236,7 +249,7 @@ export function StrengthBoard({ person }: StrengthBoardProps) {
             <textarea
               id="reason"
               value={reason}
-              onChange={(event) => setReason(event.target.value)}
+              onChange={(event) => changeReason(event.target.value)}
               rows={5}
               maxLength={MAX_REASON_LENGTH}
               placeholder="언제, 어떤 모습이었는지 적으면 받는 사람에게 오래 남아요"
