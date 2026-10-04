@@ -30,9 +30,9 @@ export default async function HomePage() {
         </p>
 
         <ul className="mt-4 flex flex-col gap-2 border-l-2 border-line pl-4 text-sm text-muted">
-          <li>나는 몰랐던 내 모습을, 곁에 있던 사람의 눈으로 보게 돼요.</li>
+          <li>하나님이 내게 주신 강점을, 곁에 있던 사람의 눈으로 발견하게 돼요.</li>
           <li>평소엔 쑥스러워 못 했던 칭찬을 조금 구체적으로 건네는 일이에요.</li>
-          <li>모이고 나면 우리가 어떤 강점들로 이뤄져 있는지 한눈에 보여요.</li>
+          <li>모이고 나면 우리에게 어떤 강점들을 주셨는지 한눈에 보여요.</li>
         </ul>
 
         <p className="mt-4 text-sm text-muted">

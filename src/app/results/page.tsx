@@ -16,7 +16,6 @@ import {
 } from "@/lib/data/results";
 import { collectGroupNames } from "@/lib/groups";
 import { groupProfiles, hiddenStrengths } from "@/lib/insights";
-import { josa } from "@/lib/korean";
 import { pickChartView, type ChartView } from "@/types/domain";
 
 type ResultsPageProps = {
@@ -96,8 +95,8 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
       <h1 className="mt-4 text-2xl">모두의 강점</h1>
       <p className="mt-1 text-sm text-muted">
         {group === ALL_GROUPS
-          ? "모두가 받은 강점"
-          : `${group}${josa(group, "이/가")} 받은 강점`}
+          ? "우리에게 주신 강점"
+          : `${group}에 주신 강점`}
       </p>
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -144,7 +143,7 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
         <InsightSection
           id="groups"
           title="조마다의 결"
-          description="누가 더 많이가 아니라, 조마다 어떤 색인지 나란히 놓았어요. 누르면 그 조만 볼 수 있어요."
+          description="누가 더 많이가 아니라, 조마다 주신 강점의 색을 나란히 놓았어요. 누르면 그 조만 볼 수 있어요."
         >
           <GroupProfiles profiles={profiles} hrefFor={(name) => hrefFor(view, name)} />
         </InsightSection>
@@ -156,8 +155,8 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
           title="아직 숨은 강점"
           description={
             isAll
-              ? "우리 모임에서 아직 잘 보이지 않은 강점이에요. 다음엔 이런 모습도 찾아보면 어떨까요."
-              : `${group}에서 아직 잘 보이지 않은 강점이에요.`
+              ? "우리 안에 주셨지만 아직 잘 발견되지 않은 강점이에요. 다음엔 이런 모습도 찾아보면 어떨까요."
+              : `${group}에 주셨지만 아직 잘 발견되지 않은 강점이에요.`
           }
         >
           <HiddenStrengths hidden={hidden} />

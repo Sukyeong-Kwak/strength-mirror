@@ -42,7 +42,8 @@ export function OverallReport({ data }: { data: OverallReportData }) {
         <Text style={s.brand}>강점 발굴 · {todayLabel()}</Text>
         <Text style={s.title}>모두의 강점</Text>
         <Text style={s.subtitle}>
-          {data.peopleCount}명 중 {data.receivedCount}명이 강점을 받았어요
+          하나님이 우리 한 사람 한 사람에게 주신 강점을 함께 발견했어요. {data.peopleCount}명 중{" "}
+          {data.receivedCount}명이 강점을 받았어요
         </Text>
 
         {data.overall.length === 0 ? (
@@ -55,7 +56,7 @@ export function OverallReport({ data }: { data: OverallReportData }) {
               <VirtueStrip segments={virtues} />
             </Section>
 
-            <Section title="많이 보인 강점">
+            <Section title="우리에게 많이 주신 강점">
               {charted.map((row) => (
                 <BarRow
                   key={row.strengthCode}
@@ -75,7 +76,7 @@ export function OverallReport({ data }: { data: OverallReportData }) {
             {data.profiles.length > 0 && (
               <Section
                 title="조마다의 결"
-                lead="누가 더 많이가 아니라, 조마다 어떤 색인지 나란히 놓았어요."
+                lead="누가 더 많이가 아니라, 조마다 주신 강점의 색을 나란히 놓았어요."
               >
                 <View style={{ flexDirection: "row", flexWrap: "wrap", marginHorizontal: -4 }}>
                   {data.profiles.map((profile) => (
@@ -116,7 +117,7 @@ export function OverallReport({ data }: { data: OverallReportData }) {
 
             <Section
               title="아직 숨은 강점"
-              lead="우리 모임에서 아직 잘 보이지 않은 강점이에요. 다음엔 이런 모습도 찾아보면 어떨까요."
+              lead="우리 안에 주셨지만 아직 잘 발견되지 않은 강점이에요. 다음엔 이런 모습도 찾아보면 어떨까요."
             >
               {data.hidden.untouched.length === 0 && data.hidden.rare.length === 0 ? (
                 <Text style={s.muted}>스물네 가지가 모두 고르게 나왔어요. 숨은 강점이 없어요.</Text>
@@ -150,7 +151,7 @@ export function OverallReport({ data }: { data: OverallReportData }) {
                       {index === 0 && (
                         <View>
                           <Text style={s.h2}>조별로 자세히</Text>
-                          <Text style={s.lead}>조마다 받은 강점 전체예요.</Text>
+                          <Text style={s.lead}>조마다 발견한 강점 전체예요.</Text>
                         </View>
                       )}
                       <View>
@@ -191,7 +192,7 @@ export function OverallReport({ data }: { data: OverallReportData }) {
         {data.people.length > 0 && (
           <Section
             title="한 사람 한 사람"
-            lead="사람마다 가장 많이 보인 강점이에요."
+            lead="한 사람 한 사람에게 주신 강점이에요."
             breakBefore
           >
             {data.people.map((person, index) => {

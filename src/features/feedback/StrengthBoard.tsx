@@ -350,7 +350,7 @@ export function StrengthBoard({ person, people }: StrengthBoardProps) {
               {person.name}님에게 &lsquo;{saved.nameKo}&rsquo; 강점을 남겼어요.
             </p>
             <p className="mt-2 text-sm text-muted">
-              받은 강점 보기에서 바로 확인할 수 있어요. 남긴 사람은 익명으로 보여요.
+              주신 강점 보기에서 바로 확인할 수 있어요. 남긴 사람은 익명으로 보여요.
             </p>
           </div>
         )}

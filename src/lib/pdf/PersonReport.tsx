@@ -50,7 +50,7 @@ export function PersonReport({ data }: { data: PersonReportData }) {
         <Text style={s.brand}>강점 발굴 · {todayLabel()}</Text>
         <Text style={s.title}>{subject}의 강점</Text>
         <Text style={s.subtitle}>
-          {data.groupLabel} · 곁에 있는 사람들이 발견한, {subject}에게 주신 강점
+          {data.groupLabel} · 곁에 있는 사람들이 발견한, 하나님이 {subject}에게 주신 강점
         </Text>
 
         {data.rows.length === 0 ? (
@@ -102,7 +102,7 @@ export function PersonReport({ data }: { data: PersonReportData }) {
             {data.distinctive.length > 0 && (
               <Section
                 title="유독 많이 보인 강점"
-                lead={`많이 받은 순이 아니라, 모두가 받은 것과 견줘 ${subject}에게서 특히 더 보인 강점이에요.`}
+                lead={`많이 받은 순이 아니라, 모두와 견줘 ${subject}에게서 특히 더 드러난 강점이에요.`}
               >
                 {data.distinctive.map((d) => {
                   const strength = getStrength(d.code);
@@ -125,7 +125,7 @@ export function PersonReport({ data }: { data: PersonReportData }) {
               <VirtueStrip segments={virtues} />
             </Section>
 
-            <Section title="받은 강점 전체">
+            <Section title="주신 강점 전체">
               {charted.map((row) => (
                 <BarRow
                   key={row.strengthCode}
@@ -159,13 +159,13 @@ export function PersonReport({ data }: { data: PersonReportData }) {
               <Section title="결이 비슷한 사람 · 서로 채워주는 사람">
                 <MatchBlock
                   title="결이 비슷한 사람"
-                  lead="받은 강점의 모양이 닮았어요."
-                  label="함께 많이 받은 강점"
+                  lead="주신 강점의 모양이 닮았어요."
+                  label="함께 많이 발견된 강점"
                   entries={data.similar}
                 />
                 <MatchBlock
                   title="서로 채워주는 사람"
-                  lead={`${subject}이 아직 받지 않은 강점이 많이 보인 사람이에요. 퍼즐의 옆 조각처럼요.`}
+                  lead={`${subject}에게서 아직 발견되지 않은 강점이 많이 보인 사람이에요. 서로 다른 강점을 주셔서, 퍼즐의 옆 조각처럼 함께 채워가요.`}
                   label="이분에게서 많이 보인 강점"
                   entries={data.complement}
                 />
@@ -177,7 +177,7 @@ export function PersonReport({ data }: { data: PersonReportData }) {
         {storyGroups.length > 0 && (
           <Section
             title="남겨준 이야기"
-            lead="남긴 사람은 모두 익명이에요."
+            lead={`곁에 있는 사람들이 ${subject}에게서 발견한 이야기예요. 남긴 사람은 모두 익명이에요.`}
           >
             {storyGroups.map((group) => (
               <StoryGroup key={group.code} code={group.code} reasons={group.reasons} />

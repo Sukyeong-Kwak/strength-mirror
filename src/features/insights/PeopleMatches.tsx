@@ -60,13 +60,13 @@ export function PeopleMatches({ subject, similar, complement }: PeopleMatchesPro
     <div className="flex flex-col gap-6">
       <MatchList
         title="결이 비슷한 사람"
-        description="받은 강점의 모양이 닮았어요."
-        strengthsLabel="함께 많이 받은 강점"
+        description="주신 강점의 모양이 닮았어요."
+        strengthsLabel="함께 많이 발견된 강점"
         entries={similar}
       />
       <MatchList
         title="서로 채워주는 사람"
-        description={`${subject}이 아직 받지 않은 강점이 많이 보인 사람이에요. 퍼즐의 옆 조각처럼요.`}
+        description={`${subject}에게서 아직 발견되지 않은 강점이 많이 보인 사람이에요. 서로 다른 강점을 주셔서, 퍼즐의 옆 조각처럼 함께 채워가요.`}
         strengthsLabel="이분에게서 많이 보인 강점"
         entries={complement}
       />

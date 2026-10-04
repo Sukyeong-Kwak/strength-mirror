@@ -34,7 +34,7 @@ type ResultPageProps = {
 
 /** 이름이 브라우저 기록과 공유 미리보기에 남지 않게 한다 */
 export const metadata: Metadata = {
-  title: "받은 강점",
+  title: "주신 강점",
   robots: { index: false, follow: false },
 };
 
@@ -94,7 +94,7 @@ export default async function PersonResultPage({ params }: ResultPageProps) {
   const links: SectionLink[] = [
     ...(hasData ? [{ id: "card", label: "강점 카드" }] : []),
     ...(distinctive.length > 0 ? [{ id: "distinctive", label: "유독 많이 보인 강점" }] : []),
-    ...(hasData ? [{ id: "ranking", label: "받은 강점 전체" }] : []),
+    ...(hasData ? [{ id: "ranking", label: "주신 강점 전체" }] : []),
     ...(similar.length + complement.length > 0
       ? [{ id: "matches", label: similar.length > 0 ? "결이 비슷한 사람" : "서로 채워주는 사람" }]
       : []),
@@ -107,7 +107,7 @@ export default async function PersonResultPage({ params }: ResultPageProps) {
         돌아가기
       </Link>
 
-      <h1 className="mt-4 text-2xl">{person.name}님이 받은 강점</h1>
+      <h1 className="mt-4 text-2xl">{person.name}님에게 주신 강점</h1>
       <p className="mt-1 text-sm text-muted">{toGroupLabel(person.groupName)}</p>
 
       <div className="mt-3">
@@ -149,7 +149,7 @@ export default async function PersonResultPage({ params }: ResultPageProps) {
         <InsightSection
           id="distinctive"
           title="유독 많이 보인 강점"
-          description={`많이 받은 순이 아니라, 모두가 받은 것과 견줘 ${subject}에게서 특히 더 보인 강점이에요.`}
+          description={`많이 받은 순이 아니라, 모두와 견줘 ${subject}에게서 특히 더 드러난 강점이에요.`}
         >
           <DistinctiveList subject={subject} items={distinctive} />
         </InsightSection>
@@ -163,7 +163,7 @@ export default async function PersonResultPage({ params }: ResultPageProps) {
         비율만 보여준다. 몇 명이 골랐는지는 서버에서 오지 않는다
       */}
       {hasData ? (
-        <InsightSection id="ranking" title="받은 강점 전체">
+        <InsightSection id="ranking" title="주신 강점 전체">
           <ResultChart view="ranking" strengthRows={strengthRows} />
         </InsightSection>
       ) : (

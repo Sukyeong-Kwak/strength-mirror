@@ -49,7 +49,7 @@ export function ExploreCards({ people, omit, showHeading = true }: ExploreCardsP
               <Link href={`/p/${me.id}/result`} className="block">
                 <span className="font-display text-lg">{me.name}님의 강점</span>
                 <span className="mt-1 block text-sm text-muted">
-                  받은 강점 · 내가 남긴 강점 · 결이 비슷한 사람 · PDF로 받기
+                  주신 강점 · 내가 남긴 강점 · 결이 비슷한 사람 · PDF로 받기
                 </span>
               </Link>
               <div className="mt-auto pt-2">
@@ -64,7 +64,7 @@ export function ExploreCards({ people, omit, showHeading = true }: ExploreCardsP
                 내 강점
               </label>
               <span className="mt-1 block text-sm text-muted">
-                명단에서 내 이름을 골라두면 받은 강점과 내가 남긴 강점을 바로 볼 수 있어요.
+                명단에서 내 이름을 골라두면 주신 강점과 내가 남긴 강점을 바로 볼 수 있어요.
                 이 기기에만 기억해요.
               </span>
               <PersonSelect

@@ -38,7 +38,7 @@ export function StrengthCard({
     >
       <p className="text-sm text-muted">{groupLabel}</p>
       <p className={`font-display ${large ? "text-3xl" : "text-2xl"}`}>{name}</p>
-      <p className="mt-1 text-sm text-muted">곁에 있는 사람들 눈에 가장 많이 보인 강점</p>
+      <p className="mt-1 text-sm text-muted">곁에 있는 사람들이 발견한, 하나님이 주신 강점</p>
 
       <ol className={`flex flex-col ${large ? "mt-6 gap-6" : "mt-4 gap-4"}`}>
         {top.map((item) => {

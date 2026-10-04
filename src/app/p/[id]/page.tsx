@@ -64,10 +64,10 @@ export default async function PersonPage({ params }: PersonPageProps) {
       <div className="mt-4 flex flex-wrap gap-2">
         <Link
           href={`/p/${person.id}/result`}
-          aria-label={`${person.name}님이 받은 강점 보기`}
+          aria-label={`${person.name}님에게 주신 강점 보기`}
           className={buttonClass("secondary", false, "md")}
         >
-          받은 강점 보기
+          주신 강점 보기
         </Link>
         <ReportDownload personId={person.id} name={person.name} variant="secondary" />
       </div>
