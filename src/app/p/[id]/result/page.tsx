@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { DistinctiveList } from "@/features/insights/DistinctiveList";
 import { MeToggle } from "@/features/insights/MeToggle";
 import { PeopleMatches, type MatchEntry } from "@/features/insights/PeopleMatches";
+import { ReportDownload } from "@/features/insights/ReportDownload";
 import { InsightSection, SectionNav, type SectionLink } from "@/features/insights/SectionNav";
 import { StrengthCard } from "@/features/insights/StrengthCard";
 import { ResultChart } from "@/features/results/ResultChart";
@@ -110,6 +111,14 @@ export default async function PersonResultPage({ params }: ResultPageProps) {
 
       <div className="mt-3">
         <MeToggle personId={person.id} />
+      </div>
+
+      {/* 이 화면의 모든 것을 한 파일로. 간직할 수 있는 결과물이라 눈에 띄게 둔다 */}
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <ReportDownload personId={person.id} name={person.name} personIds={people.map((p) => p.id)} />
+        <p className="text-sm text-muted">
+          이 화면의 모든 내용을 PDF 파일로 간직할 수 있어요
+        </p>
       </div>
 
       <div className="mt-5">

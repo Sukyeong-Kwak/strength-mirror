@@ -248,3 +248,32 @@ describe("toStandardFormat 왕복", () => {
     expect(parsePeopleText(toStandardFormat([]))).toEqual([]);
   });
 });
+
+describe("한 줄에 조와 사람이 함께 있는 명단", () => {
+  it("'팀명: 이름, 이름' 을 그 팀으로 읽는다", () => {
+    const out = parsePeopleText("빨강팀: 가나다, 라마바\n노랑팀: 사아자");
+    expect(out.map((p) => [p.groupName, p.name, p.status])).toEqual([
+      ["빨강팀", "가나다", "new"],
+      ["빨강팀", "라마바", "new"],
+      ["노랑팀", "사아자", "new"],
+    ]);
+  });
+
+  it("이름 뒤 괄호 메모는 지운다", () => {
+    const [first] = parsePeopleText("빨강팀: 가나다(둘째날), 라마바");
+    expect(first).toMatchObject({ groupName: "빨강팀", name: "가나다" });
+  });
+
+  it("'둘째날 조' 처럼 띄어 쓴 머리줄도 조로 본다", () => {
+    const out = parsePeopleText("둘째날 조\n- 가나다, 라마바");
+    expect(out.map((p) => [p.groupName, p.name])).toEqual([
+      ["둘째날 조", "가나다"],
+      ["둘째날 조", "라마바"],
+    ]);
+  });
+
+  it("'파란팀' 처럼 팀으로 끝나는 한 단어도 머리줄이다", () => {
+    const out = parsePeopleText("파란팀\n가나다");
+    expect(out[0]).toMatchObject({ groupName: "파란팀", name: "가나다" });
+  });
+});

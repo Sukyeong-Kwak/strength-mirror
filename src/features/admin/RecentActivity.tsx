@@ -23,6 +23,9 @@ const ACTION_LABEL: Record<AdminAction, string> = {
   delete_person: "명단에서 삭제",
   add_person: "명단에 추가",
   edit_person: "이름·조 수정",
+  seed_demo: "예시 데이터 채움",
+  clear_demo: "예시 데이터 지움",
+  set_mode: "화면 전환",
 };
 
 /** detail 은 jsonb 라 무엇이든 올 수 있다. 좁혀서 쓴다 */
@@ -45,6 +48,13 @@ function readName(detail: AdminActivityDetail): string | null {
 
 function describe(entry: AdminActivity): string {
   const base = ACTION_LABEL[entry.action];
+
+  // 어느 쪽으로 바꿨는지가 핵심이다
+  if (entry.action === "set_mode") {
+    return readField(entry.detail, "mode") === "demo"
+      ? "예시 화면으로 전환"
+      : "실제 참여 화면으로 전환";
+  }
 
   const count = readCount(entry.detail);
   if (count !== null) {

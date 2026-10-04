@@ -106,6 +106,8 @@ export type PersonTotals = {
    * 숨기면 목록·집계·결과에서 빠지지만 받은 글은 남는다.
    */
   hidden: boolean;
+  /** 설명용 예시 인물인지 */
+  isDemo: boolean;
 };
 
 /** 관리자 조별 합계 한 행 */
@@ -131,6 +133,9 @@ export const ADMIN_ACTIONS = [
   "delete_person",
   "add_person",
   "edit_person",
+  "seed_demo",
+  "clear_demo",
+  "set_mode",
 ] as const;
 
 export type AdminAction = (typeof ADMIN_ACTIONS)[number];

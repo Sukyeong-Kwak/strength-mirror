@@ -100,6 +100,13 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
           : `${group}${josa(group, "이/가")} 받은 강점`}
       </p>
 
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <a href="/results/report" download className={buttonClass("primary", false, "md")}>
+          전체 결과 PDF로 받기
+        </a>
+        <p className="text-sm text-muted">조마다의 결, 한 사람 한 사람의 강점까지 담겨요</p>
+      </div>
+
       <div className="mt-4">
         <SectionNav links={links} />
       </div>

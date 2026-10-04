@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { buttonClass } from "@/components/Button";
 import { LensView } from "@/features/insights/LensView";
+import { listPeople } from "@/lib/data/people";
 
 export const metadata: Metadata = {
   title: "내가 사람을 보는 눈",
@@ -15,7 +16,9 @@ export const metadata: Metadata = {
  * 받은 강점이 "남이 본 나" 라면, 남긴 강점은 "내가 남을 볼 때 쓰는 눈" 이다.
  * 이 기기의 기록만 쓰므로 서버 조회가 없다.
  */
-export default function LensPage() {
+export default async function LensPage() {
+  const people = await listPeople();
+
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-6">
       <Link href="/" className={buttonClass("secondary", false, "sm")}>
@@ -28,7 +31,7 @@ export default function LensPage() {
       </p>
 
       <div className="mt-6">
-        <LensView />
+        <LensView personIds={people.map((person) => person.id)} />
       </div>
     </main>
   );

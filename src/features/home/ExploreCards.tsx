@@ -29,7 +29,12 @@ const CARD =
  */
 export function ExploreCards({ people, omit, showHeading = true }: ExploreCardsProps) {
   const meId = useMe();
-  const submissions = useSubmissions();
+  const allSubmissions = useSubmissions();
+  // 예시 화면에서 연습한 기록은 실제 화면에서 세지 않는다 (반대도 마찬가지)
+  const submissions = useMemo(() => {
+    const ids = new Set(people.map((person) => person.id));
+    return allSubmissions.filter((row) => ids.has(row.personId));
+  }, [allSubmissions, people]);
   const me = useMemo(
     () => people.find((person) => person.id === meId) ?? null,
     [people, meId],
@@ -46,7 +51,7 @@ export function ExploreCards({ people, omit, showHeading = true }: ExploreCardsP
               <Link href={`/p/${me.id}/result`} className="block">
                 <span className="font-display text-lg">{me.name}님의 강점</span>
                 <span className="mt-1 block text-sm text-muted">
-                  강점 카드 · 유독 많이 보인 강점 · 결이 비슷한 사람
+                  강점 카드 · 유독 많이 보인 강점 · 결이 비슷한 사람 · PDF로 받기
                 </span>
               </Link>
               <div className="mt-auto pt-2">
@@ -95,7 +100,7 @@ export function ExploreCards({ people, omit, showHeading = true }: ExploreCardsP
           <Link href="/results" className={CARD}>
             <span className="font-display text-lg">모두의 강점</span>
             <span className="mt-1 block text-sm text-muted">
-              우리 모임의 결 · 조마다의 색 · 아직 숨은 강점
+              우리 모임의 결 · 조마다의 색 · 아직 숨은 강점 · PDF로 받기
             </span>
           </Link>
         </li>

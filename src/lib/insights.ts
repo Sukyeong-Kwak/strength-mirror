@@ -368,3 +368,51 @@ export function lensFromSubmissions(list: readonly MySubmission[]): Lens {
     virtues,
   };
 }
+
+// ------------------------------------------------------------
+// 내가 사람을 보는 눈을 주소에 실어 보내기 — PDF 용
+//
+// 이 기록은 기기에만 있어서, 본인 리포트에 넣으려면 기기가 함께 보내야 한다.
+// 누구에게 남겼는지는 빼고 "강점.개수" 와 사람 수만 싣는다.
+//   lens=kindness.2,gratitude.1&lensPeople=3
+// ------------------------------------------------------------
+
+const MAX_LENS_COUNT = 500;
+
+export function encodeLens(lens: Lens): { lens: string; lensPeople: string } {
+  return {
+    lens: lens.strengths.map(({ code, count }) => `${code}.${count}`).join(","),
+    lensPeople: String(lens.people),
+  };
+}
+
+/** 모양이 틀린 조각은 버린다. 남는 것이 없으면 null */
+export function decodeLens(raw: string | null, rawPeople: string | null): Lens | null {
+  if (raw === null || raw === "") {
+    return null;
+  }
+  const list: MySubmission[] = [];
+  for (const part of raw.split(",").slice(0, STRENGTHS.length)) {
+    const [code, countText] = part.split(".");
+    const count = Number(countText);
+    if (!isStrengthCodeValue(code) || !Number.isInteger(count) || count < 1 || count > MAX_LENS_COUNT) {
+      continue;
+    }
+    for (let i = 0; i < count; i += 1) {
+      list.push({ personId: "", strengthCode: code, createdAt: "" });
+    }
+  }
+  if (list.length === 0) {
+    return null;
+  }
+  const people = Number(rawPeople);
+  const lens = lensFromSubmissions(list);
+  return {
+    ...lens,
+    people: Number.isInteger(people) && people > 0 && people <= list.length ? people : 1,
+  };
+}
+
+function isStrengthCodeValue(value: string | undefined): value is StrengthCode {
+  return value !== undefined && STRENGTHS.some((s) => s.code === value);
+}

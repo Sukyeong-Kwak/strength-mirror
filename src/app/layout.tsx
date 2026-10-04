@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 
+import { DemoBanner } from "@/components/DemoBanner";
+import { getAppMode } from "@/lib/data/appState";
 import { fontVariables, fontWeightStyle } from "@/lib/fonts";
 
 import "./globals.css";
@@ -20,7 +22,10 @@ type RootLayoutProps = {
   children: React.ReactNode;
 };
 
-export default function RootLayout({ children }: RootLayoutProps) {
+export default async function RootLayout({ children }: RootLayoutProps) {
+  // 예시 화면이면 모든 참여자 화면 위에 안내를 띄운다
+  const mode = await getAppMode();
+
   return (
     // 서체는 lib/fonts.ts 한 곳에서 정한다. 여기서는 실어 나르기만 한다
     <html
@@ -28,7 +33,10 @@ export default function RootLayout({ children }: RootLayoutProps) {
       className={`${fontVariables} h-full antialiased`}
       style={fontWeightStyle}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {mode === "demo" && <DemoBanner />}
+        {children}
+      </body>
     </html>
   );
 }

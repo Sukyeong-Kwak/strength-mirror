@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { buttonClass } from "@/components/Button";
 import { AdminShell } from "@/features/admin/AdminShell";
+import { DemoModePanel } from "@/features/admin/DemoModePanel";
 import { ReceiptStatusTable } from "@/features/admin/ReceiptStatusTable";
 import { RecentActivity } from "@/features/admin/RecentActivity";
 import {
@@ -10,6 +11,7 @@ import {
   getRecentActivity,
   requireAdmin,
 } from "@/lib/auth/dal";
+import { getAppMode, inMode } from "@/lib/data/appState";
 import { sortGroupNames } from "@/lib/groups";
 
 export default async function AdminHomePage() {
@@ -18,11 +20,17 @@ export default async function AdminHomePage() {
   // 확인 결과는 cache() 에 담기므로 아래 조회들은 다시 확인하지 않는다
   const session = await requireAdmin();
 
-  const [allPeople, entries, labels] = await Promise.all([
+  const [everyone, entries, labels, mode] = await Promise.all([
     getReceiptTotals(),
     getRecentActivity(),
     getAdminDisplayNames(),
+    getAppMode(),
   ]);
+
+  // 현황은 지금 참여자 화면에 보이는 쪽만 센다. 예시와 실제를 섞으면 숫자가 뜻을 잃는다
+  const allPeople = everyone.filter((row) => inMode(row.isDemo, mode));
+  const demoCount = everyone.filter((row) => row.isDemo && !row.hidden).length;
+  const liveCount = everyone.filter((row) => !row.isDemo && !row.hidden).length;
 
   // 숨긴 사람은 현황에서 뺀다.
   // DB 의 집계 뷰도 숨긴 사람을 빼고 세므로, 여기서 넣으면
@@ -38,6 +46,8 @@ export default async function AdminHomePage() {
 
   return (
     <AdminShell session={session} title="관리자">
+      <DemoModePanel mode={mode} demoCount={demoCount} liveCount={liveCount} />
+
       <nav className="mt-4 flex flex-col gap-2">
         <Link href="/admin/people/import" className={buttonClass("secondary", true)}>
           명단 등록
@@ -51,10 +61,15 @@ export default async function AdminHomePage() {
         <Link href="/results" className={buttonClass("secondary", true)}>
           집계 보기
         </Link>
+        <a href="/results/report" download className={buttonClass("secondary", true)}>
+          전체 결과 PDF 받기
+        </a>
       </nav>
 
       <section className="mt-6 rounded-base border border-line bg-surface p-4">
-        <h2 className="text-sm text-muted">등록 인원</h2>
+        <h2 className="text-sm text-muted">
+          {mode === "demo" ? "예시 인원" : "등록 인원"}
+        </h2>
         <p className="num mt-1 text-base">
           {totals.length}명
           {hiddenCount > 0 && (

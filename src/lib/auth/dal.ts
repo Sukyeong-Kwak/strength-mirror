@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { cache } from "react";
 
 import { RECENT_ACTIVITY_LIMIT } from "@/lib/constants";
+import { getAppMode, inMode } from "@/lib/data/appState";
+import { readPeopleRows } from "@/lib/data/people";
 import { toGroupLabel } from "@/lib/groups";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { formatRelativeTime } from "@/lib/time";
@@ -55,6 +57,8 @@ type PersonTotalsRow = {
   group_name: string | null;
   created_by: string | null;
   hidden_at: string | null;
+  /** 이번 스키마 변경으로 생긴 칸. 재실행 전에는 오지 않는다 */
+  is_demo?: boolean | null;
   submission_count: number | null;
   strength_count: number | null;
 };
@@ -71,6 +75,7 @@ function toPersonTotals(row: PersonTotalsRow): PersonTotals | null {
     submissionCount: row.submission_count ?? 0,
     strengthCount: row.strength_count ?? 0,
     hidden: row.hidden_at !== null,
+    isDemo: row.is_demo === true,
   };
 }
 
@@ -94,9 +99,9 @@ export async function getReceiptTotals(): Promise<PersonTotals[]> {
   // 돌리기 전까지는 이 컬럼을 모른다. 그때가 되면 overrideTypes 를 지워도 된다
   const { data, error } = await supabase
     .from("person_totals_internal")
-    .select(
-      "person_id, name, group_name, created_by, hidden_at, submission_count, strength_count",
-    )
+    // 칸을 하나씩 고르지 않는다. is_demo 는 스키마를 다시 실행해야 생기는데,
+    // 없는 칸을 고르면 조회 전체가 실패한다. 뷰라서 * 로 읽어도 내보내는 것은 같다
+    .select("*")
     .order("group_name", { ascending: true })
     .order("name", { ascending: true })
     .overrideTypes<PersonTotalsRow[], { merge: false }>();
@@ -123,18 +128,16 @@ export async function getPeopleForDedupe(): Promise<
   Array<{ name: string; groupName: string | null }>
 > {
   await requireAdmin();
-  const supabase = await createSupabaseServerClient();
 
-  const { data, error } = await supabase.from("people").select("name, group_name");
+  // 등록은 지금 모드 쪽으로 들어가므로 "이미 있음" 도 같은 쪽만 본다
+  const [rows, mode] = await Promise.all([readPeopleRows(), getAppMode()]);
 
-  if (error) {
-    throw new Error("기존 명단을 불러오지 못했어요");
-  }
-
-  return (data ?? []).map((row) => ({
-    name: row.name,
-    groupName: row.group_name,
-  }));
+  return rows
+    .filter((row) => inMode(row.is_demo ?? false, mode))
+    .map((row) => ({
+      name: row.name,
+      groupName: row.group_name,
+    }));
 }
 
 /** 최근 활동. action 은 CHECK 제약이라 생성 타입이 string 이다. 아는 값만 통과시킨다 */

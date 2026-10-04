@@ -4,7 +4,9 @@ import type { MySubmission, ReasonEntry, StrengthRatioRow } from "@/types/domain
 
 import {
   complementPeople,
+  decodeLens,
   distinctiveStrengths,
+  encodeLens,
   groupProfiles,
   hiddenStrengths,
   lensFromSubmissions,
@@ -136,5 +138,23 @@ describe("lensFromSubmissions", () => {
 
   it("아무것도 안 남겼으면 비어 있다", () => {
     expect(lensFromSubmissions([])).toEqual({ total: 0, people: 0, strengths: [], virtues: [] });
+  });
+});
+
+describe("encodeLens · decodeLens", () => {
+  it("주소로 보냈다가 되살려도 같다", () => {
+    const lens = lensFromSubmissions([
+      { personId: "a", strengthCode: "gratitude", createdAt: "" },
+      { personId: "b", strengthCode: "gratitude", createdAt: "" },
+      { personId: "b", strengthCode: "humor", createdAt: "" },
+    ]);
+    const { lens: raw, lensPeople } = encodeLens(lens);
+    expect(raw).toBe("gratitude.2,humor.1");
+    expect(decodeLens(raw, lensPeople)).toEqual(lens);
+  });
+
+  it("모양이 틀린 조각은 버린다", () => {
+    expect(decodeLens("nope.3,humor.x,kindness.0", "1")).toBeNull();
+    expect(decodeLens("humor.2,evil.9", "9")?.people).toBe(1);
   });
 });

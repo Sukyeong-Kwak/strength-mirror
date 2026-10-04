@@ -4,9 +4,10 @@ import { notFound } from "next/navigation";
 
 import { buttonClass } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
+import { ReportDownload } from "@/features/insights/ReportDownload";
 import { ShareButton } from "@/features/insights/ShareButton";
 import { StrengthCard } from "@/features/insights/StrengthCard";
-import { getPerson } from "@/lib/data/people";
+import { getPerson, listPeople } from "@/lib/data/people";
 import {
   getOverallStrengthRatio,
   getPersonReasons,
@@ -44,10 +45,11 @@ export default async function StrengthCardPage({ params }: CardPageProps) {
     notFound();
   }
 
-  const [rows, overall, reasons] = await Promise.all([
+  const [rows, overall, reasons, people] = await Promise.all([
     getPersonStrengthRatio(person.id),
     getOverallStrengthRatio(),
     getPersonReasons(person.id),
+    listPeople(),
   ]);
 
   const top = topStrengths(rows, 3).map((row) => ({
@@ -85,7 +87,8 @@ export default async function StrengthCardPage({ params }: CardPageProps) {
               distinctive={distinctive}
               size="large"
             />
-            <div className="mt-4">
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <ReportDownload personId={person.id} name={person.name} personIds={people.map((p) => p.id)} />
               <ShareButton title="강점 카드" />
             </div>
             <p className="mt-3 text-sm text-muted">

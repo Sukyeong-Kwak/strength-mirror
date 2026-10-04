@@ -5,6 +5,8 @@ import { z } from "zod";
 
 import { getAdminSession, writeAuditLog } from "@/lib/auth/admin";
 import { UNASSIGNED_GROUP_LABEL } from "@/lib/constants";
+import { getAppMode } from "@/lib/data/appState";
+import { readPeopleRows } from "@/lib/data/people";
 import { josa } from "@/lib/korean";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { ActionResult } from "@/types/domain";
@@ -74,6 +76,9 @@ function revalidateAll() {
  *
  * 붙여넣기 등록과 같은 규칙으로, 같은 조에 같은 이름이 있으면 받지 않는다.
  * 동명이인이라면 조를 달리 하거나 이름에 구분을 붙여 등록한다.
+ *
+ * 지금이 예시 모드면 예시 인물로, 실제 모드면 실제 인물로 들어간다.
+ * 중복도 같은 쪽 안에서만 본다. 예시의 '김하늘' 이 실제 '김하늘' 을 막으면 안 된다.
  */
 export async function addPerson(
   input: unknown,
@@ -90,17 +95,21 @@ export async function addPerson(
 
   const { name, groupName } = parsed.data;
   const supabase = await createSupabaseServerClient();
+  const isDemo = (await getAppMode()) === "demo";
 
-  const { data: existing, error: readError } = await supabase
-    .from("people")
-    .select("name, group_name");
-
-  if (readError) {
+  let existing: Awaited<ReturnType<typeof readPeopleRows>>;
+  try {
+    existing = await readPeopleRows();
+  } catch {
     return { ok: false, error: "기존 명단을 확인하지 못했어요. 다시 눌러주세요" };
   }
 
   const key = dedupeKey(name, groupName);
-  if ((existing ?? []).some((row) => dedupeKey(row.name, row.group_name) === key)) {
+  const clash = existing.some(
+    (row) =>
+      (row.is_demo ?? false) === isDemo && dedupeKey(row.name, row.group_name) === key,
+  );
+  if (clash) {
     return {
       ok: false,
       error: `${groupName ?? UNASSIGNED_GROUP_LABEL}에 이미 ${name}${josa(name, "이/가")} 있어요`,
@@ -109,7 +118,13 @@ export async function addPerson(
 
   const { data: inserted, error } = await supabase
     .from("people")
-    .insert({ name, group_name: groupName, created_by: auth.admin.email })
+    // is_demo 는 예시일 때만 싣는다. 스키마 재실행 전 DB 에는 그 칸이 없다
+    .insert({
+      name,
+      group_name: groupName,
+      created_by: auth.admin.email,
+      ...(isDemo ? { is_demo: true } : {}),
+    } as never)
     .select("id");
 
   if (error) {
@@ -123,6 +138,7 @@ export async function addPerson(
   await writeAuditLog(supabase, auth.admin.email, "add_person", {
     name,
     group: groupName,
+    demo: isDemo,
   });
   revalidateAll();
 
@@ -151,15 +167,14 @@ export async function updatePerson(
   const { personId, expectedName, name, groupName } = parsed.data;
   const supabase = await createSupabaseServerClient();
 
-  const { data: everyone, error: readError } = await supabase
-    .from("people")
-    .select("id, name, group_name");
-
-  if (readError) {
+  let everyone: Awaited<ReturnType<typeof readPeopleRows>>;
+  try {
+    everyone = await readPeopleRows();
+  } catch {
     return { ok: false, error: "확인하지 못했어요. 다시 눌러주세요" };
   }
 
-  const person = (everyone ?? []).find((row) => row.id === personId);
+  const person = everyone.find((row) => row.id === personId);
   if (person === undefined) {
     return { ok: false, error: "이미 지워진 사람이에요. 새로고침해주세요" };
   }
@@ -174,8 +189,12 @@ export async function updatePerson(
   }
 
   const key = dedupeKey(name, groupName);
-  const clash = (everyone ?? []).some(
-    (row) => row.id !== personId && dedupeKey(row.name, row.group_name) === key,
+  // 예시는 예시끼리, 실제는 실제끼리만 견준다
+  const clash = everyone.some(
+    (row) =>
+      row.id !== personId &&
+      (row.is_demo ?? false) === (person.is_demo ?? false) &&
+      dedupeKey(row.name, row.group_name) === key,
   );
   if (clash) {
     return {

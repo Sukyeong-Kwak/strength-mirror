@@ -16,10 +16,13 @@ import { PersonForm } from "@/features/admin/PersonForm";
 import { UNASSIGNED_GROUP_LABEL } from "@/lib/constants";
 import { sortGroupNames } from "@/lib/groups";
 import { josa } from "@/lib/korean";
+import type { AppMode } from "@/lib/data/appState";
 import type { PersonTotals } from "@/types/domain";
 
 type PeopleManagerProps = {
   people: readonly PersonTotals[];
+  /** 지금 참여자 화면. 목록과 등록이 이쪽을 따른다 */
+  mode: AppMode;
 };
 
 const ALL_GROUPS = "전체";
@@ -28,7 +31,7 @@ const FAILED_NOTICE = "처리하지 못했어요. 잠시 뒤 다시 눌러주세
 /** 지우기 전에 한 번 더 묻는 대상 */
 type Confirming = { personId: string; name: string };
 
-export function PeopleManager({ people }: PeopleManagerProps) {
+export function PeopleManager({ people, mode }: PeopleManagerProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [group, setGroup] = useState(ALL_GROUPS);
@@ -158,7 +161,9 @@ export function PeopleManager({ people }: PeopleManagerProps) {
 
   const addSection = (
     <section className="rounded-base border border-line bg-surface p-4">
-      <h2 className="text-sm text-muted">한 명 바로 등록</h2>
+      <h2 className="text-sm text-muted">
+        {mode === "demo" ? "예시에 한 명 바로 등록" : "한 명 바로 등록"}
+      </h2>
       <div className="mt-3">
         <PersonForm
           key={`${addFormKey}-${group}`}
@@ -191,9 +196,17 @@ export function PeopleManager({ people }: PeopleManagerProps) {
     </>
   );
 
+  const modeNotice = mode === "demo" && (
+    <p className="rounded-base border border-line bg-warn-surface px-4 py-3 text-sm text-warn">
+      지금은 예시 화면이라 예시 인물만 보여요. 여기서 등록하면 예시에 들어가요. 실제 명단은
+      관리자 홈에서 실제 참여로 바꾸면 보여요.
+    </p>
+  );
+
   if (people.length === 0) {
     return (
       <div className="mt-6 space-y-4">
+        {modeNotice}
         {addSection}
         {messages}
         <EmptyState
@@ -219,6 +232,8 @@ export function PeopleManager({ people }: PeopleManagerProps) {
           붙여넣어 한꺼번에 등록
         </Link>
       </div>
+
+      {modeNotice}
 
       {addSection}
 

@@ -18,8 +18,13 @@ import { useSubmissions } from "@/lib/useLocalStore";
  * 서버 렌더에서는 저장소가 비어 있어 빈 화면이 먼저 그려지고,
  * 하이드레이션 직후 기록이 있으면 채워진다 (useLocalStore 의 서버 스냅숏).
  */
-export function LensView() {
-  const submissions = useSubmissions();
+export function LensView({ personIds }: { personIds: readonly string[] }) {
+  const all = useSubmissions();
+  // 지금 화면의 사람에게 남긴 것만 센다. 예시 화면에서 연습한 기록이 실제 시선에 섞이지 않게
+  const submissions = useMemo(() => {
+    const ids = new Set(personIds);
+    return all.filter((row) => ids.has(row.personId));
+  }, [all, personIds]);
   const lens = useMemo(() => lensFromSubmissions(submissions), [submissions]);
 
   if (lens.total === 0) {
