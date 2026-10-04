@@ -249,6 +249,29 @@ export function saveMyGroup(group: string): void {
 }
 
 /**
+ * 내 이름으로 골라둔 사람.
+ *
+ * 홈에서 "내 강점" 을 한 번에 열기 위한 책갈피다. 서버로 보내지 않으므로
+ * 누가 누구인지는 이 기기만 안다. 고르지 않아도 모든 화면은 그대로 쓸 수 있다.
+ */
+export function getMe(): string | null {
+  return readRaw(STORAGE_KEYS.me);
+}
+
+export function getMeOnServer(): null {
+  return null;
+}
+
+export function saveMe(personId: string | null): void {
+  if (personId === null) {
+    removeRaw(STORAGE_KEYS.me);
+  } else {
+    writeRaw(STORAGE_KEYS.me, personId);
+  }
+  notify();
+}
+
+/**
  * 멱등 키.
  *
  * 같은 키로 두 번 오면 서버가 두 번째를 무시한다. 그래서 버튼을 두 번 눌러도,

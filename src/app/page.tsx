@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { buttonClass } from "@/components/Button";
+import { ExploreCards } from "@/features/home/ExploreCards";
 import { PeopleBrowser } from "@/features/home/PeopleBrowser";
 import { listPeople } from "@/lib/data/people";
 
@@ -40,19 +41,16 @@ export default async function HomePage() {
       </div>
 
       {/*
-        전체 집계를 명단 위로 올렸다.
-        아래에 두면 이름 하나를 고르고 떠나는 흐름이라 끝까지 내려가지 않는다.
-        그러면 이 시간이 "나에게 온 강점" 으로만 남는데, 원래 하려던 것은
-        서로 다른 강점을 가진 우리가 모여 무엇이 되었는지를 함께 보는 것이다.
-        그 그림을 먼저 보고 명단으로 내려가게 둔다.
+        볼거리를 명단 위에 펼친다.
+        전에는 "전체 집계 보기" 링크 하나였는데, 이름 하나를 고르고 떠나는 흐름이라
+        그 아래에 무엇이 더 있는지 모르고 지나갔다. 보고 안 누르는 것은 괜찮지만
+        몰라서 못 누르면 안 된다. 칸마다 안에 무엇이 있는지 한 줄씩 적는다.
 
-        다만 이 화면에서 해야 할 일은 여전히 이름을 고르는 것이라 md 로 둔다.
-        명단(PeopleBrowser)보다 먼저 읽히되 명단을 덮지는 않는 크기다
+        다만 이 화면에서 해야 할 일은 여전히 이름을 고르는 것이라
+        칸의 글자는 명단의 이름보다 작게 둔다
       */}
       <div className="mt-6">
-        <Link href="/results" className={buttonClass("secondary", false, "md")}>
-          모두의 강점 보기
-        </Link>
+        <ExploreCards people={people} />
       </div>
 
       <div className="mt-6">

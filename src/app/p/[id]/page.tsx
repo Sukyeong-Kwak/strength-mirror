@@ -64,6 +64,9 @@ export default async function PersonPage({ params }: PersonPageProps) {
         >
           받은 강점 보기
         </Link>
+        <p className="mt-2 text-sm text-muted">
+          강점 카드, 유독 많이 보인 강점, 결이 비슷한 사람까지 볼 수 있어요.
+        </p>
       </div>
 
       <StrengthBoard person={person} />

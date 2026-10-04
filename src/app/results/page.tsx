@@ -2,14 +2,20 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { buttonClass } from "@/components/Button";
+import { ExploreCards } from "@/features/home/ExploreCards";
+import { GroupProfiles } from "@/features/insights/GroupProfiles";
+import { HiddenStrengths } from "@/features/insights/HiddenStrengths";
+import { InsightSection, SectionNav, type SectionLink } from "@/features/insights/SectionNav";
 import { ResultChart, ViewToggle } from "@/features/results/ResultChart";
 import { UNASSIGNED_GROUP_LABEL } from "@/lib/constants";
 import { listPeople } from "@/lib/data/people";
 import {
+  getAllGroupStrengthRatios,
   getGroupStrengthRatio,
   getOverallStrengthRatio,
 } from "@/lib/data/results";
 import { collectGroupNames } from "@/lib/groups";
+import { groupProfiles, hiddenStrengths } from "@/lib/insights";
 import { josa } from "@/lib/korean";
 import { pickChartView, type ChartView } from "@/types/domain";
 
@@ -47,10 +53,31 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
   const group =
     rawGroup !== undefined && groups.includes(rawGroup) ? rawGroup : ALL_GROUPS;
 
-  const strengthRows =
-    group === ALL_GROUPS
-      ? await getOverallStrengthRatio()
-      : await getGroupStrengthRatio(group);
+  const isAll = group === ALL_GROUPS;
+  const [overall, groupRows, byGroup] = await Promise.all([
+    getOverallStrengthRatio(),
+    isAll ? Promise.resolve(null) : getGroupStrengthRatio(group),
+    isAll && groups.length > 1 ? getAllGroupStrengthRatios() : Promise.resolve(null),
+  ]);
+  const strengthRows = groupRows ?? overall;
+
+  // 조 차례는 명단의 자연 정렬을 따른다. 받은 것이 없는 조는 groupProfiles 가 뺀다
+  const profiles =
+    byGroup === null
+      ? []
+      : groupProfiles(
+          new Map(groups.map((name) => [name, byGroup.get(name) ?? []])),
+          overall,
+        );
+  const hasData = strengthRows.length > 0;
+  const hidden = hiddenStrengths(strengthRows);
+
+  const links: SectionLink[] = [
+    { id: "chart", label: "한눈에" },
+    ...(profiles.length > 0 ? [{ id: "groups", label: "조마다의 결" }] : []),
+    ...(hasData ? [{ id: "hidden", label: "아직 숨은 강점" }] : []),
+    { id: "more", label: "나에 대해 더 보기" },
+  ];
 
   function hrefFor(nextView: ChartView, nextGroup: string): string {
     const query = new URLSearchParams({ view: nextView });
@@ -74,6 +101,10 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
       </p>
 
       <div className="mt-4">
+        <SectionNav links={links} />
+      </div>
+
+      <div id="chart" className="mt-4 scroll-mt-6">
         <ViewToggle view={view} hrefFor={(next) => hrefFor(next, group)} />
       </div>
 
@@ -101,6 +132,34 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
       <div className="mt-6">
         <ResultChart view={view} strengthRows={strengthRows} />
       </div>
+
+      {profiles.length > 0 && (
+        <InsightSection
+          id="groups"
+          title="조마다의 결"
+          description="누가 더 많이가 아니라, 조마다 어떤 색인지 나란히 놓았어요. 누르면 그 조만 볼 수 있어요."
+        >
+          <GroupProfiles profiles={profiles} hrefFor={(name) => hrefFor(view, name)} />
+        </InsightSection>
+      )}
+
+      {hasData && (
+        <InsightSection
+          id="hidden"
+          title="아직 숨은 강점"
+          description={
+            isAll
+              ? "우리 모임에서 아직 잘 보이지 않은 강점이에요. 다음엔 이런 모습도 찾아보면 어떨까요."
+              : `${group}에서 아직 잘 보이지 않은 강점이에요.`
+          }
+        >
+          <HiddenStrengths hidden={hidden} />
+        </InsightSection>
+      )}
+
+      <InsightSection id="more" title="나에 대해 더 보기">
+        <ExploreCards people={people} omit="results" showHeading={false} />
+      </InsightSection>
     </main>
   );
 }
