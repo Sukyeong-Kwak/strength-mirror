@@ -129,6 +129,8 @@ export const ADMIN_ACTIONS = [
   "hide_person",
   "restore_person",
   "delete_person",
+  "add_person",
+  "edit_person",
 ] as const;
 
 export type AdminAction = (typeof ADMIN_ACTIONS)[number];

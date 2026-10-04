@@ -116,7 +116,8 @@ create table if not exists public.admin_audit_log (
   admin_email text not null,
   action      text not null check (
                 action in ('login','import_people','exclude_feedback','restore_feedback',
-                           'add_admin','remove_admin','hide_person','restore_person','delete_person')
+                           'add_admin','remove_admin','hide_person','restore_person','delete_person',
+             'add_person','edit_person')
               ),
   detail      jsonb null,
   created_at  timestamptz not null default now()
@@ -128,7 +129,8 @@ alter table public.admin_audit_log drop constraint if exists admin_audit_log_act
 alter table public.admin_audit_log drop constraint if exists admin_audit_log_action_allowed;
 alter table public.admin_audit_log add constraint admin_audit_log_action_allowed check (
   action in ('login','import_people','exclude_feedback','restore_feedback',
-             'add_admin','remove_admin','hide_person','restore_person','delete_person')
+             'add_admin','remove_admin','hide_person','restore_person','delete_person',
+             'add_person','edit_person')
 );
 
 
@@ -551,15 +553,15 @@ revoke all on all sequences in schema public from anon, authenticated;
 grant select (id, name, group_name, hidden_at, created_at) on public.people to anon, authenticated;
 grant insert                                              on public.people to authenticated;
 
--- 숨기기·되돌리기·삭제 (관리자 전용).
+-- 숨기기·되돌리기·이름과 조 고치기·삭제 (관리자 전용).
 --
 -- RLS 정책(people_update_admin·people_delete_admin)만으로는 부족하다.
 -- 권한이 먼저 걸리고 그다음에 정책을 본다. 정책만 있고 GRANT 가 없으면
 -- 관리자여도 42501 로 막힌다.
 --
--- update 는 hidden_at 만 연다. 이름·조를 고치는 화면은 아직 없다.
--- 열어둘 이유가 없는 컬럼은 열지 않는다 (feedbacks.excluded_at 과 같은 방식)
-grant update (hidden_at) on public.people to authenticated;
+-- update 는 hidden_at 과 name, group_name 만 연다.
+-- created_by·created_at 은 누가 언제 등록했는지의 기록이라 고칠 수 없게 둔다
+grant update (hidden_at, name, group_name) on public.people to authenticated;
 grant delete             on public.people to authenticated;
 
 -- strengths : 누구나 읽기

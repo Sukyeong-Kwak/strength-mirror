@@ -18,7 +18,7 @@ type ResultsPageProps = {
 };
 
 export const metadata: Metadata = {
-  title: "전체 집계",
+  title: "모두의 강점",
   robots: { index: false, follow: false },
 };
 
@@ -66,7 +66,7 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
         명단으로
       </Link>
 
-      <h1 className="mt-4 text-2xl">전체 집계</h1>
+      <h1 className="mt-4 text-2xl">모두의 강점</h1>
       <p className="mt-1 text-sm text-muted">
         {group === ALL_GROUPS
           ? "모두가 받은 강점"

@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { getAdminSession, writeAuditLog } from "@/lib/auth/admin";
+import { UNASSIGNED_GROUP_LABEL } from "@/lib/constants";
+import { josa } from "@/lib/korean";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { ActionResult } from "@/types/domain";
 
@@ -19,6 +21,40 @@ const DeleteInput = z.object({
   expectedName: z.string().trim().min(1).max(40),
 });
 
+const NameField = z.string().trim().min(1).max(40);
+
+/**
+ * 조 이름. 빈 문자열과 '미지정' 은 조 없음(null) 으로 본다.
+ * 화면은 조 없는 사람을 '미지정' 으로 보여주므로, 그 글자를 그대로 저장하면
+ * '미지정' 이라는 진짜 조가 하나 더 생겨 두 묶음이 같은 이름으로 갈라진다
+ */
+const GroupField = z
+  .string()
+  .trim()
+  .max(40)
+  .nullable()
+  .transform((value) =>
+    value === null || value === "" || value === UNASSIGNED_GROUP_LABEL ? null : value,
+  );
+
+const AddInput = z.object({
+  name: NameField,
+  groupName: GroupField,
+});
+
+const UpdateInput = z.object({
+  personId: z.uuid(),
+  /** 화면에 보이던 이름. 목록이 낡았는지 확인하는 용도 */
+  expectedName: NameField,
+  name: NameField,
+  groupName: GroupField,
+});
+
+/** 중복 판정 키. importPeople · parsePeople 의 규칙과 같아야 한다 */
+function dedupeKey(name: string, groupName: string | null): string {
+  return `${name.trim().replace(/\s+/g, " ").toLowerCase()} ${groupName ?? ""}`;
+}
+
 async function adminOrError() {
   const session = await getAdminSession();
   if (session === null) {
@@ -31,6 +67,152 @@ function revalidateAll() {
   revalidatePath("/admin");
   revalidatePath("/admin/people");
   revalidatePath("/");
+}
+
+/**
+ * 한 명 바로 등록.
+ *
+ * 붙여넣기 등록과 같은 규칙으로, 같은 조에 같은 이름이 있으면 받지 않는다.
+ * 동명이인이라면 조를 달리 하거나 이름에 구분을 붙여 등록한다.
+ */
+export async function addPerson(
+  input: unknown,
+): Promise<ActionResult<{ name: string; groupName: string | null }>> {
+  const auth = await adminOrError();
+  if (!auth.ok) {
+    return { ok: false, error: auth.error };
+  }
+
+  const parsed = AddInput.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "이름은 1~40자, 조 이름은 40자까지 쓸 수 있어요" };
+  }
+
+  const { name, groupName } = parsed.data;
+  const supabase = await createSupabaseServerClient();
+
+  const { data: existing, error: readError } = await supabase
+    .from("people")
+    .select("name, group_name");
+
+  if (readError) {
+    return { ok: false, error: "기존 명단을 확인하지 못했어요. 다시 눌러주세요" };
+  }
+
+  const key = dedupeKey(name, groupName);
+  if ((existing ?? []).some((row) => dedupeKey(row.name, row.group_name) === key)) {
+    return {
+      ok: false,
+      error: `${groupName ?? UNASSIGNED_GROUP_LABEL}에 이미 ${name}${josa(name, "이/가")} 있어요`,
+    };
+  }
+
+  const { data: inserted, error } = await supabase
+    .from("people")
+    .insert({ name, group_name: groupName, created_by: auth.admin.email })
+    .select("id");
+
+  if (error) {
+    return { ok: false, error: "등록하지 못했어요. 다시 눌러주세요" };
+  }
+  // RLS 가 막으면 오류 없이 0행이 들어간다
+  if (inserted === null || inserted.length === 0) {
+    return { ok: false, error: "등록되지 않았어요. 다시 로그인한 뒤 시도해주세요" };
+  }
+
+  await writeAuditLog(supabase, auth.admin.email, "add_person", {
+    name,
+    group: groupName,
+  });
+  revalidateAll();
+
+  return { ok: true, data: { name, groupName } };
+}
+
+/**
+ * 이름 · 조 고치기.
+ *
+ * 받은 글은 사람(id)에 붙어 있으므로 이름이나 조를 바꿔도 그대로 따라간다.
+ * 삭제와 같은 까닭으로 고치기 전에 이름을 한 번 더 맞춰본다.
+ */
+export async function updatePerson(
+  input: unknown,
+): Promise<ActionResult<{ name: string; groupName: string | null }>> {
+  const auth = await adminOrError();
+  if (!auth.ok) {
+    return { ok: false, error: auth.error };
+  }
+
+  const parsed = UpdateInput.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "이름은 1~40자, 조 이름은 40자까지 쓸 수 있어요" };
+  }
+
+  const { personId, expectedName, name, groupName } = parsed.data;
+  const supabase = await createSupabaseServerClient();
+
+  const { data: everyone, error: readError } = await supabase
+    .from("people")
+    .select("id, name, group_name");
+
+  if (readError) {
+    return { ok: false, error: "확인하지 못했어요. 다시 눌러주세요" };
+  }
+
+  const person = (everyone ?? []).find((row) => row.id === personId);
+  if (person === undefined) {
+    return { ok: false, error: "이미 지워진 사람이에요. 새로고침해주세요" };
+  }
+  if (person.name !== expectedName) {
+    return {
+      ok: false,
+      error: "목록이 바뀌었어요. 새로고침한 뒤 다시 확인해주세요",
+    };
+  }
+  if (person.name === name && person.group_name === groupName) {
+    return { ok: false, error: "바뀐 것이 없어요" };
+  }
+
+  const key = dedupeKey(name, groupName);
+  const clash = (everyone ?? []).some(
+    (row) => row.id !== personId && dedupeKey(row.name, row.group_name) === key,
+  );
+  if (clash) {
+    return {
+      ok: false,
+      error: `${groupName ?? UNASSIGNED_GROUP_LABEL}에 이미 ${name}${josa(name, "이/가")} 있어요`,
+    };
+  }
+
+  // name·group_name 의 update 권한은 이번 스키마 변경으로 열렸다.
+  // 스키마를 다시 실행하기 전에는 42501 로 막힌다
+  const { data: updated, error } = await supabase
+    .from("people")
+    .update({ name, group_name: groupName })
+    .eq("id", personId)
+    .select("id");
+
+  if (error) {
+    return {
+      ok: false,
+      error:
+        error.code === "42501"
+          ? "DB 권한이 아직 열리지 않았어요. supabase/schema.sql 을 다시 실행해주세요"
+          : "고치지 못했어요. 다시 눌러주세요",
+    };
+  }
+  if (updated === null || updated.length === 0) {
+    return { ok: false, error: "고치지 못했어요. 다시 로그인한 뒤 시도해주세요" };
+  }
+
+  await writeAuditLog(supabase, auth.admin.email, "edit_person", {
+    name,
+    from: { name: person.name, group: person.group_name },
+    to: { name, group: groupName },
+  });
+  revalidateAll();
+
+  return { ok: true, data: { name, groupName } };
 }
 
 /**

@@ -4,10 +4,18 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 
-import { deletePerson, setPersonHidden } from "@/actions/admin/managePeople";
+import {
+  addPerson,
+  deletePerson,
+  setPersonHidden,
+  updatePerson,
+} from "@/actions/admin/managePeople";
 import { Button, Chip, buttonClass } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
+import { PersonForm } from "@/features/admin/PersonForm";
+import { UNASSIGNED_GROUP_LABEL } from "@/lib/constants";
 import { sortGroupNames } from "@/lib/groups";
+import { josa } from "@/lib/korean";
 import type { PersonTotals } from "@/types/domain";
 
 type PeopleManagerProps = {
@@ -27,6 +35,9 @@ export function PeopleManager({ people }: PeopleManagerProps) {
   const [query, setQuery] = useState("");
   const [showHidden, setShowHidden] = useState(true);
   const [confirming, setConfirming] = useState<Confirming | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  // 등록이 끝나면 폼을 비우려고 key 를 바꾼다
+  const [addFormKey, setAddFormKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -44,6 +55,54 @@ export function PeopleManager({ people }: PeopleManagerProps) {
   }, [people, group, query, showHidden]);
 
   const hiddenCount = people.filter((p) => p.hidden).length;
+  // 폼에서 고를 조. '전체' 는 조가 아니다
+  const groupChoices = groups.filter((g) => g !== ALL_GROUPS);
+
+  function add(value: { name: string; groupName: string | null }) {
+    setError(null);
+    setNotice(null);
+    startTransition(async () => {
+      try {
+        const result = await addPerson(value);
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        const { name, groupName } = result.data;
+        setNotice(
+          `${groupName ?? UNASSIGNED_GROUP_LABEL}에 ${name}${josa(name, "을/를")} 등록했어요`,
+        );
+        setAddFormKey((k) => k + 1);
+        router.refresh();
+      } catch {
+        setError(FAILED_NOTICE);
+      }
+    });
+  }
+
+  function edit(person: PersonTotals, value: { name: string; groupName: string | null }) {
+    setError(null);
+    setNotice(null);
+    startTransition(async () => {
+      try {
+        const result = await updatePerson({
+          personId: person.personId,
+          expectedName: person.name,
+          ...value,
+        });
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        const { name, groupName } = result.data;
+        setNotice(`고쳤어요 — ${name} · ${groupName ?? UNASSIGNED_GROUP_LABEL}`);
+        setEditingId(null);
+        router.refresh();
+      } catch {
+        setError(FAILED_NOTICE);
+      }
+    });
+  }
 
   function toggleHidden(person: PersonTotals) {
     setError(null);
@@ -97,14 +156,51 @@ export function PeopleManager({ people }: PeopleManagerProps) {
     });
   }
 
+  const addSection = (
+    <section className="rounded-base border border-line bg-surface p-4">
+      <h2 className="text-sm text-muted">한 명 바로 등록</h2>
+      <div className="mt-3">
+        <PersonForm
+          key={`${addFormKey}-${group}`}
+          groups={groupChoices}
+          initialGroup={group === ALL_GROUPS ? UNASSIGNED_GROUP_LABEL : group}
+          submitLabel="등록"
+          pending={pending}
+          onSubmit={add}
+        />
+      </div>
+    </section>
+  );
+
+  const messages = (
+    <>
+      {error !== null && (
+        <p
+          role="alert"
+          className="rounded-base border border-line bg-surface px-4 py-3 text-sm text-virtue-courage-ink"
+        >
+          {error}
+        </p>
+      )}
+
+      {notice !== null && (
+        <p className="rounded-base border border-line bg-surface px-4 py-3 text-sm text-muted">
+          {notice}
+        </p>
+      )}
+    </>
+  );
+
   if (people.length === 0) {
     return (
-      <div className="mt-6">
+      <div className="mt-6 space-y-4">
+        {addSection}
+        {messages}
         <EmptyState
-          title="아직 등록된 사람이 없어요. 명단부터 등록해주세요"
+          title="아직 등록된 사람이 없어요. 여러 명이면 붙여넣어 한 번에 등록할 수 있어요"
           action={
-            <Link href="/admin/people/import" className={buttonClass("primary", false, "lg")}>
-              명단 등록하러 가기
+            <Link href="/admin/people/import" className={buttonClass("secondary", false, "md")}>
+              붙여넣어 한꺼번에 등록
             </Link>
           }
         />
@@ -120,9 +216,11 @@ export function PeopleManager({ people }: PeopleManagerProps) {
           {hiddenCount > 0 ? ` · 숨김 ${hiddenCount}명` : ""}
         </p>
         <Link href="/admin/people/import" className={buttonClass("secondary", false, "sm")}>
-          명단 등록
+          붙여넣어 한꺼번에 등록
         </Link>
       </div>
+
+      {addSection}
 
       <div className="flex gap-2 overflow-x-auto pb-1">
         {groups.map((name) => (
@@ -153,20 +251,7 @@ export function PeopleManager({ people }: PeopleManagerProps) {
         </label>
       )}
 
-      {error !== null && (
-        <p
-          role="alert"
-          className="rounded-base border border-line bg-surface px-4 py-3 text-sm text-virtue-courage-ink"
-        >
-          {error}
-        </p>
-      )}
-
-      {notice !== null && (
-        <p className="rounded-base border border-line bg-surface px-4 py-3 text-sm text-muted">
-          {notice}
-        </p>
-      )}
+      {messages}
 
       {rows.length === 0 ? (
         <EmptyState title="이 조건에 맞는 사람이 없어요. 조를 전체로 바꾸거나 검색어를 지워보세요" />
@@ -190,8 +275,22 @@ export function PeopleManager({ people }: PeopleManagerProps) {
                   </p>
                 </div>
 
-                {confirming?.personId !== person.personId && (
+                {confirming?.personId !== person.personId &&
+                  editingId !== person.personId && (
                   <div className="flex shrink-0 gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={pending}
+                      onClick={() => {
+                        setError(null);
+                        setNotice(null);
+                        setConfirming(null);
+                        setEditingId(person.personId);
+                      }}
+                    >
+                      수정
+                    </Button>
                     <Button
                       variant="secondary"
                       size="sm"
@@ -207,6 +306,7 @@ export function PeopleManager({ people }: PeopleManagerProps) {
                       onClick={() => {
                         setError(null);
                         setNotice(null);
+                        setEditingId(null);
                         setConfirming({
                           personId: person.personId,
                           name: person.name,
@@ -218,6 +318,25 @@ export function PeopleManager({ people }: PeopleManagerProps) {
                   </div>
                 )}
               </div>
+
+              {editingId === person.personId && (
+                <div className="mt-3 rounded-base border border-line p-3">
+                  <PersonForm
+                    groups={groupChoices}
+                    initialName={person.name}
+                    initialGroup={person.groupName}
+                    submitLabel="저장"
+                    pending={pending}
+                    onSubmit={(value) => edit(person, value)}
+                    onCancel={() => setEditingId(null)}
+                  />
+                  {person.submissionCount > 0 && (
+                    <p className="num mt-2 text-sm text-muted">
+                      받은 제출 {person.submissionCount}건은 그대로 따라가요.
+                    </p>
+                  )}
+                </div>
+              )}
 
               {confirming?.personId === person.personId && (
                 <div className="mt-3 rounded-base border border-line bg-warn-surface p-3">

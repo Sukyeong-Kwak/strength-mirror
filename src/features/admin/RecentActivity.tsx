@@ -21,6 +21,8 @@ const ACTION_LABEL: Record<AdminAction, string> = {
   hide_person: "명단에서 숨김",
   restore_person: "숨김 되돌림",
   delete_person: "명단에서 삭제",
+  add_person: "명단에 추가",
+  edit_person: "이름·조 수정",
 };
 
 /** detail 은 jsonb 라 무엇이든 올 수 있다. 좁혀서 쓴다 */

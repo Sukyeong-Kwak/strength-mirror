@@ -135,7 +135,7 @@ export function StrengthBoard({ person }: StrengthBoardProps) {
   return (
     <div>
       <p className="mt-2 text-sm text-muted">
-        떠오르는 강점을 눌러 이유를 적어주세요. 한 번에 하나씩 남깁니다.
+        이 사람 하면 떠오르는 강점을 골라보세요. 여러 개라면 하나씩 차례로 남기면 돼요.
       </p>
 
       {/*
@@ -215,7 +215,7 @@ export function StrengthBoard({ person }: StrengthBoardProps) {
                 disabled={!canSave}
                 block
               >
-                등록하기
+                남기기
               </Button>
             </div>
           ) : (
@@ -227,10 +227,10 @@ export function StrengthBoard({ person }: StrengthBoardProps) {
                 disabled={pending}
                 block
               >
-                수정
+                다시 쓰기
               </Button>
               <Button size="lg" onClick={save} disabled={pending} block>
-                {pending ? "등록 중…" : "등록"}
+                {pending ? "남기는 중…" : "남기기"}
               </Button>
             </div>
           )
@@ -244,7 +244,7 @@ export function StrengthBoard({ person }: StrengthBoardProps) {
               htmlFor="reason"
               className="mt-5 block text-sm text-muted"
             >
-              {person.name}님에게서 이 강점을 본 순간을 적어주세요
+              {person.name}님에게서 이 강점이 보였던 순간
             </label>
             <textarea
               id="reason"
@@ -252,12 +252,12 @@ export function StrengthBoard({ person }: StrengthBoardProps) {
               onChange={(event) => changeReason(event.target.value)}
               rows={5}
               maxLength={MAX_REASON_LENGTH}
-              placeholder="언제, 어떤 모습이었는지 적으면 받는 사람에게 오래 남아요"
+              placeholder="거창하지 않아도 돼요. 그때 그 장면 하나면 충분해요"
               className="mt-2 w-full rounded-base border border-line bg-surface px-4 py-3 text-base placeholder:text-muted"
             />
             <p className="num mt-1 text-sm text-muted">
               {trimmedReason.length < MIN_REASON_LENGTH
-                ? `${MIN_REASON_LENGTH - trimmedReason.length}자 더 적어주세요`
+                ? `${MIN_REASON_LENGTH - trimmedReason.length}자만 더 쓰면 남길 수 있어요`
                 : `${trimmedReason.length}자`}
             </p>
             <p className="mt-3 text-sm text-muted">
@@ -275,7 +275,7 @@ export function StrengthBoard({ person }: StrengthBoardProps) {
         {writing !== null && step === "confirm" && (
           <div>
             <p className="rounded-base border border-line bg-warn-surface px-4 py-3 text-sm text-warn">
-              남기면 고치거나 지울 수 없어요. 한 번만 더 읽어봐 주세요.
+              남긴 뒤에는 고치거나 지울 수 없어요.
             </p>
 
             <dl className="mt-4 flex flex-col gap-4">

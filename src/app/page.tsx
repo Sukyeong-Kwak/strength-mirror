@@ -24,20 +24,18 @@ export default async function HomePage() {
       {/* 설명 글줄은 격자를 따라 늘리지 않는다. 넓은 화면에서 한 줄이 길면 안 읽힌다 */}
       <div className="mt-3 max-w-prose">
         <p>
-          큰 판에 서로의 이름을 적어두고, 그 사람에게 가장 잘 보이는 강점 스티커를
-          붙여주는 시간이에요. 이 화면이 그 판을 대신해요.
+          큰 판에 서로의 이름을 적어두고, 그 사람에게 잘 어울리는 강점 스티커를
+          붙여주던 그 놀이를 화면으로 옮겼어요.
         </p>
 
         <ul className="mt-4 flex flex-col gap-2 border-l-2 border-line pl-4 text-sm text-muted">
-          <li>내가 몰랐던 내 강점을, 곁에서 지켜본 사람의 눈으로 알게 돼요.</li>
-          <li>강점을 적어주는 일 자체가 서로를 격려하는 시간이 돼요.</li>
-          <li>
-            서로 다른 강점을 가진 우리가 모여 하나의 공동체, 하나의 퍼즐이 돼요.
-          </li>
+          <li>나는 몰랐던 내 모습을, 곁에 있던 사람의 눈으로 보게 돼요.</li>
+          <li>평소엔 쑥스러워 못 했던 칭찬을 조금 구체적으로 건네는 일이에요.</li>
+          <li>모이고 나면 우리가 어떤 강점들로 이뤄져 있는지 한눈에 보여요.</li>
         </ul>
 
         <p className="mt-4 text-sm text-muted">
-          이름을 골라 그 사람에게서 본 강점을 남겨주세요.
+          떠오르는 사람부터, 생각나는 만큼만 남겨도 충분해요.
         </p>
       </div>
 
@@ -53,7 +51,7 @@ export default async function HomePage() {
       */}
       <div className="mt-6">
         <Link href="/results" className={buttonClass("secondary", false, "md")}>
-          전체 집계 보기
+          모두의 강점 보기
         </Link>
       </div>
 
