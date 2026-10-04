@@ -1,8 +1,7 @@
 /**
  * 받은 강점을 다시 읽는 계산들 — "유독 많이 보인 강점", "결이 비슷한 사람" 같은 것.
  *
- * 전부 순수 함수다. 재료는 서버가 내려주는 5% 눈금의 비율과
- * 이 기기에만 남은 제출 이력뿐이다. 누가 남겼는지는 어디에도 없고, 여기서도 만들지 않는다.
+ * 전부 순수 함수다. 재료는 서버가 내려주는 5% 눈금의 비율뿐이다. 누가 남겼는지는 어디에도 없고, 여기서도 만들지 않는다.
  *
  * 비율 행의 뜻 (ratio.ts 와 같다)
  *   - 행이 있고 ratio > 0  : 받았다
@@ -13,15 +12,13 @@
 import { groupByVirtue } from "./ratio";
 import {
   STRENGTHS,
-  VIRTUES,
-  VIRTUE_META,
   getStrength,
   type StrengthCode,
   type StrengthDef,
   type VirtueCode,
 } from "./strengths";
 
-import type { MySubmission, ReasonEntry, StrengthRatioRow } from "@/types/domain";
+import type { ReasonEntry, StrengthRatioRow } from "@/types/domain";
 
 /** 사람 id → 그 사람이 받은 강점 비율 */
 export type PersonRatios = ReadonlyMap<string, readonly StrengthRatioRow[]>;
@@ -313,106 +310,4 @@ export function hiddenStrengths(rows: readonly StrengthRatioRow[]): HiddenStreng
     }
   }
   return { untouched, rare };
-}
-
-// ------------------------------------------------------------
-// 6. 내가 사람을 보는 눈 — 이 기기의 기록만으로
-// ------------------------------------------------------------
-
-export type Lens = {
-  /** 남긴 강점 수 */
-  total: number;
-  /** 남긴 사람 수 */
-  people: number;
-  /** 많이 남긴 강점 순. 같으면 VIA 차례 */
-  strengths: Array<{ code: StrengthCode; count: number }>;
-  /** 덕목별 비율(정수 %). 합이 100 이 아닐 수 있다 — 이 화면은 대략의 기울기만 보여준다 */
-  virtues: Array<{ virtue: VirtueCode; ratio: number }>;
-};
-
-export function lensFromSubmissions(list: readonly MySubmission[]): Lens {
-  const counts = new Map<StrengthCode, number>();
-  for (const row of list) {
-    counts.set(row.strengthCode, (counts.get(row.strengthCode) ?? 0) + 1);
-  }
-
-  const strengths = [...counts]
-    .map(([code, count]) => ({ code, count }))
-    .sort((a, b) =>
-      b.count === a.count
-        ? getStrength(a.code).order - getStrength(b.code).order
-        : b.count - a.count,
-    );
-
-  const total = list.length;
-  const virtueCounts = new Map<VirtueCode, number>();
-  for (const { code, count } of strengths) {
-    const virtue = getStrength(code).virtue;
-    virtueCounts.set(virtue, (virtueCounts.get(virtue) ?? 0) + count);
-  }
-  const virtues = VIRTUES.map((virtue) => ({
-    virtue,
-    ratio: total === 0 ? 0 : Math.round((100 * (virtueCounts.get(virtue) ?? 0)) / total),
-  }))
-    .filter((v) => v.ratio > 0)
-    .sort((a, b) =>
-      b.ratio === a.ratio
-        ? VIRTUE_META[a.virtue].order - VIRTUE_META[b.virtue].order
-        : b.ratio - a.ratio,
-    );
-
-  return {
-    total,
-    people: new Set(list.map((row) => row.personId)).size,
-    strengths,
-    virtues,
-  };
-}
-
-// ------------------------------------------------------------
-// 내가 사람을 보는 눈을 주소에 실어 보내기 — PDF 용
-//
-// 이 기록은 기기에만 있어서, 본인 리포트에 넣으려면 기기가 함께 보내야 한다.
-// 누구에게 남겼는지는 빼고 "강점.개수" 와 사람 수만 싣는다.
-//   lens=kindness.2,gratitude.1&lensPeople=3
-// ------------------------------------------------------------
-
-const MAX_LENS_COUNT = 500;
-
-export function encodeLens(lens: Lens): { lens: string; lensPeople: string } {
-  return {
-    lens: lens.strengths.map(({ code, count }) => `${code}.${count}`).join(","),
-    lensPeople: String(lens.people),
-  };
-}
-
-/** 모양이 틀린 조각은 버린다. 남는 것이 없으면 null */
-export function decodeLens(raw: string | null, rawPeople: string | null): Lens | null {
-  if (raw === null || raw === "") {
-    return null;
-  }
-  const list: MySubmission[] = [];
-  for (const part of raw.split(",").slice(0, STRENGTHS.length)) {
-    const [code, countText] = part.split(".");
-    const count = Number(countText);
-    if (!isStrengthCodeValue(code) || !Number.isInteger(count) || count < 1 || count > MAX_LENS_COUNT) {
-      continue;
-    }
-    for (let i = 0; i < count; i += 1) {
-      list.push({ personId: "", strengthCode: code, createdAt: "" });
-    }
-  }
-  if (list.length === 0) {
-    return null;
-  }
-  const people = Number(rawPeople);
-  const lens = lensFromSubmissions(list);
-  return {
-    ...lens,
-    people: Number.isInteger(people) && people > 0 && people <= list.length ? people : 1,
-  };
-}
-
-function isStrengthCodeValue(value: string | undefined): value is StrengthCode {
-  return value !== undefined && STRENGTHS.some((s) => s.code === value);
 }

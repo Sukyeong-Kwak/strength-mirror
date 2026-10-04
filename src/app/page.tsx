@@ -50,10 +50,11 @@ export default async function HomePage() {
         칸의 글자는 명단의 이름보다 작게 둔다
       */}
       <div className="mt-6">
-        <ExploreCards people={people} />
+        <ExploreCards />
       </div>
 
-      <div className="mt-6">
+      {/* 둘러보기의 '내 강점' 칸이 여기로 내려온다 */}
+      <div id="people" className="mt-6 scroll-mt-6">
         <PeopleBrowser people={people} />
       </div>
 

@@ -26,7 +26,6 @@ import {
   type Distinctive,
   type GroupProfile,
   type HiddenStrengths,
-  type Lens,
 } from "@/lib/insights";
 import type { StrengthCode } from "@/lib/strengths";
 import type { ReasonEntry, StrengthRatioRow } from "@/types/domain";
@@ -43,18 +42,10 @@ export type PersonReportData = {
   similar: ReportMatch[];
   complement: ReportMatch[];
   reasons: ReasonEntry[];
-  /**
-   * 내가 사람을 보는 눈. 그 기기에만 있는 기록이라 서버는 모른다.
-   * 본인 기기에서 받을 때만 기기가 함께 보내고, 없으면 null
-   */
-  lens: Lens | null;
 };
 
 /** 한 사람의 리포트. 없거나 지금 화면에 없는 사람이면 null */
-export async function getPersonReportData(
-  personId: string,
-  lens: Lens | null = null,
-): Promise<PersonReportData | null> {
+export async function getPersonReportData(personId: string): Promise<PersonReportData | null> {
   const person = await getPerson(personId);
   if (person === null) {
     return null;
@@ -97,7 +88,6 @@ export async function getPersonReportData(
       2,
     ).flatMap((c) => toMatch(c.personId, c.brings)),
     reasons,
-    lens: lens !== null && lens.total > 0 ? lens : null,
   };
 }
 

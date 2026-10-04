@@ -1,5 +1,5 @@
-import { josa } from "@/lib/korean";
-import { findStrength, VIRTUE_META, type StrengthDef } from "@/lib/strengths";
+import { VIRTUE_META, type StrengthDef } from "@/lib/strengths";
+import { alsoCalledLine, confusables, distinctionTitle } from "@/lib/strengthText";
 
 /**
  * 강점 설명 본문.
@@ -15,20 +15,9 @@ import { findStrength, VIRTUE_META, type StrengthDef } from "@/lib/strengths";
  */
 export function StrengthBody({ strength }: { strength: StrengthDef }) {
   const meta = VIRTUE_META[strength.virtue];
-  const others = strength.confusableWith
-    .map(findStrength)
-    .filter((other): other is StrengthDef => other !== null);
-
-  // "호기심과 무엇이 다른가요" — 앞말 받침에 따라 조사가 달라진다
-  const distinctionTitle =
-    others.length === 1 && others[0] !== undefined
-      ? `${others[0].nameKo}${josa(others[0].nameKo, "와/과")} 무엇이 다른가요`
-      : others.length > 1
-        ? "비슷한 강점과 무엇이 다른가요"
-        : "이런 뜻은 아니에요";
-
-  // "독창성 · 기발함이라고도 해요" — 마지막 낱말 받침에 조사를 맞춘다
-  const lastAlias = strength.alsoCalled.at(-1) ?? "";
+  // 머리말은 PDF 와 같은 함수에서 만든다 (lib/strengthText)
+  const others = confusables(strength);
+  const alsoCalled = alsoCalledLine(strength);
 
   return (
     <div>
@@ -51,12 +40,7 @@ export function StrengthBody({ strength }: { strength: StrengthDef }) {
         영문 이름 <span className="text-ink">{strength.nameEn}</span>
       </p>
 
-      {strength.alsoCalled.length > 0 && (
-        <p className="mt-1 text-sm text-muted">
-          {strength.alsoCalled.join(" · ")}
-          {josa(lastAlias, "이라고/라고")}도 해요
-        </p>
-      )}
+      {alsoCalled !== null && <p className="mt-1 text-sm text-muted">{alsoCalled}</p>}
 
       <p className="mt-3 text-base leading-relaxed">{strength.long}</p>
 
@@ -80,7 +64,7 @@ export function StrengthBody({ strength }: { strength: StrengthDef }) {
       </div>
 
       <div className="mt-4">
-        <p className="text-sm text-muted">{distinctionTitle}</p>
+        <p className="text-sm text-muted">{distinctionTitle(strength)}</p>
         <p className="mt-1 text-base leading-relaxed">{strength.distinction}</p>
         {others.length > 0 && (
           <ul className="mt-2 flex flex-col gap-2">

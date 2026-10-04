@@ -321,15 +321,6 @@ export function StrengthBoard({ person }: StrengthBoardProps) {
             <p className="mt-2 text-sm text-muted">
               받은 강점 보기에서 바로 확인할 수 있어요. 남긴 사람은 익명으로 보여요.
             </p>
-            <Link
-              href="/me"
-              className="mt-4 block rounded-base border border-line px-4 py-3"
-            >
-              <span className="font-display text-base">내가 사람을 보는 눈</span>
-              <span className="mt-1 block text-sm text-muted">
-                지금까지 남긴 강점으로, 내가 사람들에게서 주로 무엇을 보는지 볼 수 있어요
-              </span>
-            </Link>
           </div>
         )}
       </Sheet>

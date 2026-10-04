@@ -35,8 +35,6 @@ export const UNASSIGNED_GROUP_LABEL = "미지정";
 export const STORAGE_KEYS = {
   submitted: "via:submitted:v1",
   myGroup: "via:myGroup:v1",
-  /** "내 이름" 으로 골라둔 사람 id. 이 기기에만 있고 서버로 가지 않는다 */
-  me: "via:me:v1",
   draftPrefix: "via:draft:",
 } as const;
 

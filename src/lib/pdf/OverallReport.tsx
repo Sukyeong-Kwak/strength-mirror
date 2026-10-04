@@ -114,20 +114,23 @@ export function OverallReport({ data }: { data: OverallReportData }) {
               </Section>
             )}
 
-            <Section title="아직 숨은 강점" lead="다음엔 이런 모습도 찾아보면 어떨까요.">
+            <Section
+              title="아직 숨은 강점"
+              lead="우리 모임에서 아직 잘 보이지 않은 강점이에요. 다음엔 이런 모습도 찾아보면 어떨까요."
+            >
               {data.hidden.untouched.length === 0 && data.hidden.rare.length === 0 ? (
-                <Text style={s.muted}>스물네 가지가 모두 고르게 나왔어요.</Text>
+                <Text style={s.muted}>스물네 가지가 모두 고르게 나왔어요. 숨은 강점이 없어요.</Text>
               ) : (
                 <>
                   {data.hidden.untouched.length > 0 && (
                     <Text>
-                      <Text style={s.muted}>아직 아무도 고르지 않은 강점 · </Text>
+                      <Text style={s.muted}>아직 아무도 고르지 않았어요 · </Text>
                       {data.hidden.untouched.map((x) => x.nameKo).join(", ")}
                     </Text>
                   )}
                   {data.hidden.rare.length > 0 && (
                     <Text>
-                      <Text style={s.muted}>드물게 나온 강점 · </Text>
+                      <Text style={s.muted}>드물게 나왔어요 · </Text>
                       {data.hidden.rare.map((x) => x.nameKo).join(", ")}
                     </Text>
                   )}

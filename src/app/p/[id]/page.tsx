@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { buttonClass } from "@/components/Button";
 import { StrengthBoard } from "@/features/feedback/StrengthBoard";
+import { ReportDownload } from "@/features/insights/ReportDownload";
 import { getPerson } from "@/lib/data/people";
 import { toGroupLabel } from "@/lib/groups";
 
@@ -56,7 +57,11 @@ export default async function PersonPage({ params }: PersonPageProps) {
         말할 필요가 없다. 다만 링크만 훑는 사람에게는 "누구의" 가 사라지므로
         읽는 이름에만 남긴다 (보이는 글자를 그대로 품어야 한다 — WCAG 2.5.3)
       */}
-      <div className="mt-4">
+      {/*
+        PDF 도 여기서 바로 받는다. 각자 자기 이름을 눌러 들어오는 화면이라
+        내가 누구인지 따로 고르지 않아도 된다
+      */}
+      <div className="mt-4 flex flex-wrap gap-2">
         <Link
           href={`/p/${person.id}/result`}
           aria-label={`${person.name}님이 받은 강점 보기`}
@@ -64,10 +69,12 @@ export default async function PersonPage({ params }: PersonPageProps) {
         >
           받은 강점 보기
         </Link>
-        <p className="mt-2 text-sm text-muted">
-          강점 카드, 유독 많이 보인 강점, 결이 비슷한 사람까지 보고 PDF로 받을 수 있어요.
-        </p>
+        <ReportDownload personId={person.id} name={person.name} variant="secondary" />
       </div>
+      <p className="mt-2 text-sm text-muted">
+        강점 카드, 유독 많이 보인 강점, 결이 비슷한 사람까지 볼 수 있고, 모두 PDF 한 파일로
+        받을 수 있어요.
+      </p>
 
       <StrengthBoard person={person} />
     </main>

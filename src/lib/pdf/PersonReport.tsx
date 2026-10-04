@@ -3,6 +3,7 @@ import { Document, Page, Text, View } from "@react-pdf/renderer";
 import type { PersonReportData, ReportMatch } from "@/lib/data/reports";
 import { groupByVirtue, splitByVisibility } from "@/lib/ratio";
 import { VIRTUE_META, getStrength, type StrengthCode } from "@/lib/strengths";
+import { alsoCalledLine, confusables, distinctionTitle } from "@/lib/strengthText";
 
 import {
   BarRow,
@@ -101,7 +102,7 @@ export function PersonReport({ data }: { data: PersonReportData }) {
             {data.distinctive.length > 0 && (
               <Section
                 title="유독 많이 보인 강점"
-                lead={`많이 받은 순이 아니라, 모두와 견줘 ${subject}에게서 특히 더 보인 강점이에요.`}
+                lead={`많이 받은 순이 아니라, 모두가 받은 것과 견줘 ${subject}에게서 특히 더 보인 강점이에요.`}
               >
                 {data.distinctive.map((d) => {
                   const strength = getStrength(d.code);
@@ -141,31 +142,17 @@ export function PersonReport({ data }: { data: PersonReportData }) {
               )}
             </Section>
 
+            {/*
+              강점 풀이는 사이트의 강점 설명(StrengthBody)과 같은 순서 · 같은 문구로 싣는다.
+              문구는 모두 lib/strengths.ts 와 lib/strengthText.ts 에서 온다. 여기서 새로 쓰지 않는다
+            */}
             <Section
-              title="대표 강점 풀이"
-              lead="가장 많이 보인 강점이 어떤 뜻인지, 어떤 모습으로 드러나는지예요."
+              title="가장 많이 보인 강점, 더 자세히"
+              lead="사이트의 '24가지 강점' 설명과 같은 내용이에요."
             >
-              {data.top.map((item) => {
-                const strength = getStrength(item.code);
-                return (
-                  <View key={item.code} style={{ marginBottom: 10 }} wrap={false}>
-                    <Text style={[s.name, { color: VIRTUE_INK[strength.virtue] }]}>
-                      {strength.nameKo}
-                      <Text style={{ fontFamily: "Pretendard", fontSize: 8.5, color: COLOR.muted }}>
-                        {"  "}
-                        {strength.nameEn}
-                      </Text>
-                    </Text>
-                    <Text style={{ marginTop: 2 }}>{strength.long}</Text>
-                    <Text style={[s.small, s.muted, { marginTop: 4 }]}>이런 모습이 보이면</Text>
-                    {strength.examples.map((example) => (
-                      <Text key={example} style={[s.small, { paddingLeft: 8 }]}>
-                        · {example}
-                      </Text>
-                    ))}
-                  </View>
-                );
-              })}
+              {data.top.map((item) => (
+                <StrengthExplain key={item.code} code={item.code} />
+              ))}
             </Section>
 
             {data.similar.length + data.complement.length > 0 && (
@@ -178,38 +165,13 @@ export function PersonReport({ data }: { data: PersonReportData }) {
                 />
                 <MatchBlock
                   title="서로 채워주는 사람"
-                  lead={`${subject}이 아직 받지 않은 강점이 많이 보인 사람이에요.`}
+                  lead={`${subject}이 아직 받지 않은 강점이 많이 보인 사람이에요. 퍼즐의 옆 조각처럼요.`}
                   label="이분에게서 많이 보인 강점"
                   entries={data.complement}
                 />
               </Section>
             )}
           </>
-        )}
-
-        {data.lens !== null && (
-          <Section
-            title="내가 사람을 보는 눈"
-            lead={`${subject}이 이 기기에서 다른 사람들에게 남긴 강점이에요. 내가 사람들에게서 주로 무엇을 보는지 드러나요.`}
-          >
-            <Text style={{ marginBottom: 6 }}>
-              {data.lens.people}명에게 {data.lens.total}개를 남겼어요. 가장 자주 발견한 강점은{" "}
-              <Text style={s.name}>{strengthName(data.lens.strengths[0]?.code ?? "kindness")}</Text>
-            </Text>
-            <VirtueStrip segments={data.lens.virtues} />
-            <View style={{ marginTop: 8 }}>
-              {data.lens.strengths.map(({ code, count }) => (
-                <BarRow
-                  key={code}
-                  label={strengthName(code)}
-                  ratio={count}
-                  max={data.lens?.strengths[0]?.count ?? 1}
-                  color={VIRTUE_COLOR[getStrength(code).virtue]}
-                  valueLabel={`${count}`}
-                />
-              ))}
-            </View>
-          </Section>
         )}
 
         {storyGroups.length > 0 && (
@@ -271,9 +233,6 @@ function StoryGroup({
   const strength = getStrength(code);
   return (
     <View style={{ marginBottom: 10 }}>
-      <View minPresenceAhead={40}>
-        <Text style={[s.name, { color: VIRTUE_INK[strength.virtue] }]}>{strength.nameKo}</Text>
-      </View>
       {reasons.map((entry, index) => (
         <View
           key={`${entry.createdAt}-${index}`}
@@ -284,8 +243,56 @@ function StoryGroup({
             paddingVertical: 4,
           }}
         >
+          {/* 강점 이름은 첫 이야기와 한 덩어리로. 따로 두면 쪽 끝에 이름만 남는다 */}
+          {index === 0 && (
+            <Text style={[s.name, { color: VIRTUE_INK[strength.virtue] }]}>
+              {strength.nameKo}
+            </Text>
+          )}
           <Text>{entry.reason}</Text>
         </View>
+      ))}
+    </View>
+  );
+}
+
+/** 사이트의 강점 설명(StrengthBody)을 종이에 옮긴 것. 칸의 차례와 머리말이 같다 */
+function StrengthExplain({ code }: { code: StrengthCode }) {
+  const strength = getStrength(code);
+  const meta = VIRTUE_META[strength.virtue];
+  const alsoCalled = alsoCalledLine(strength);
+  const others = confusables(strength);
+  const label = [s.small, s.muted, { marginTop: 6 }];
+
+  return (
+    <View style={{ marginBottom: 14 }} wrap={false}>
+      <Text style={[s.name, { fontSize: 15, color: VIRTUE_INK[strength.virtue] }]}>
+        {strength.nameKo}
+      </Text>
+      <Text style={[s.small, { color: VIRTUE_INK[strength.virtue] }]}>{meta.nameKo}</Text>
+      <Text style={[s.small, s.muted]}>영문 이름 {strength.nameEn}</Text>
+      {alsoCalled !== null && <Text style={[s.small, s.muted]}>{alsoCalled}</Text>}
+
+      <Text style={{ marginTop: 4 }}>{strength.long}</Text>
+
+      <View style={{ marginTop: 6, backgroundColor: COLOR.page, borderRadius: 4, padding: 6 }}>
+        <Text style={[s.small, s.muted]}>VIA 분류에서는</Text>
+        <Text>{strength.viaDefinition}</Text>
+      </View>
+
+      <Text style={label}>이런 모습이 보이면</Text>
+      {strength.examples.map((example) => (
+        <Text key={example} style={{ paddingLeft: 8 }}>
+          · {example}
+        </Text>
+      ))}
+
+      <Text style={label}>{distinctionTitle(strength)}</Text>
+      <Text>{strength.distinction}</Text>
+      {others.map((other) => (
+        <Text key={other.code} style={[s.small, { paddingLeft: 8 }]}>
+          · {other.nameKo} <Text style={s.muted}>· {other.short}</Text>
+        </Text>
       ))}
     </View>
   );
