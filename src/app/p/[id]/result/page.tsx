@@ -93,7 +93,7 @@ export default async function PersonResultPage({ params }: ResultPageProps) {
   const hasData = strengthRows.length > 0;
   const links: SectionLink[] = [
     ...(hasData ? [{ id: "card", label: "강점 카드" }] : []),
-    ...(distinctive.length > 0 ? [{ id: "distinctive", label: "유독 많이 보인 강점" }] : []),
+    ...(distinctive.length > 0 ? [{ id: "distinctive", label: "유독 드러난 강점" }] : []),
     ...(hasData ? [{ id: "ranking", label: "주신 강점 전체" }] : []),
     ...(similar.length + complement.length > 0
       ? [{ id: "matches", label: similar.length > 0 ? "결이 비슷한 사람" : "서로 채워주는 사람" }]
@@ -110,17 +110,16 @@ export default async function PersonResultPage({ params }: ResultPageProps) {
       <h1 className="mt-4 text-2xl">{person.name}님에게 주신 강점</h1>
       <p className="mt-1 text-sm text-muted">{toGroupLabel(person.groupName)}</p>
 
-      <div className="mt-3">
+      {/*
+        이 화면의 모든 것을 한 파일로. 간직할 수 있는 결과물이라 눈에 띄게 둔다.
+        '내 이름이에요' 는 곁가지라 같은 줄에 작게 붙인다. 따로 한 줄을 주면
+        내용이 시작되기 전에 버튼 줄이 너무 많아진다
+      */}
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <ReportDownload personId={person.id} name={person.name} />
         <MeToggle personId={person.id} />
       </div>
-
-      {/* 이 화면의 모든 것을 한 파일로. 간직할 수 있는 결과물이라 눈에 띄게 둔다 */}
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <ReportDownload personId={person.id} name={person.name} />
-        <p className="text-sm text-muted">
-          이 화면의 모든 내용을 PDF 파일로 간직할 수 있어요
-        </p>
-      </div>
+      <p className="mt-2 text-sm text-muted">이 화면의 모든 내용을 PDF 파일로 간직할 수 있어요</p>
 
       <div className="mt-5">
         <SectionNav links={links} />
@@ -148,8 +147,8 @@ export default async function PersonResultPage({ params }: ResultPageProps) {
       {distinctive.length > 0 && (
         <InsightSection
           id="distinctive"
-          title="유독 많이 보인 강점"
-          description={`많이 받은 순이 아니라, 모두와 견줘 ${subject}에게서 특히 더 드러난 강점이에요.`}
+          title="유독 드러난 강점"
+          description={`많이 발견된 순이 아니라, 모두와 견줘 ${subject}에게 주신 강점 중 특히 더 드러난 강점이에요.`}
         >
           <DistinctiveList subject={subject} items={distinctive} />
         </InsightSection>
@@ -169,7 +168,7 @@ export default async function PersonResultPage({ params }: ResultPageProps) {
       ) : (
         <div className="mt-6">
           <EmptyState
-            title={`아직 ${subject}에게 남겨진 강점이 없어요. 떠오르는 게 있다면 첫 번째로 남겨보세요`}
+            title={`아직 ${subject}에게서 발견한 강점이 없어요. 떠오르는 강점이 있다면 첫 번째로 남겨보세요`}
             action={
               <Link href={`/p/${person.id}`} className={buttonClass("primary", false, "md")}>
                 강점 남기러 가기

@@ -33,7 +33,7 @@ export function GroupProfiles({ profiles, hrefFor }: GroupProfilesProps) {
                 </span>
               )}
               <span className="mt-2 block text-sm text-muted">
-                많이 보인 강점 ·{" "}
+                많이 주신 강점 ·{" "}
                 <span className="text-ink">
                   {profile.top.map((code) => getStrength(code).nameKo).join(", ")}
                 </span>

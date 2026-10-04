@@ -68,7 +68,7 @@ function MentionedStrengths({ rows }: { rows: readonly StrengthRatioRow[] }) {
 
   return (
     <div className="mt-6 rounded-base border border-line bg-surface px-4 py-3">
-      <p className="text-sm text-muted">이런 강점도 받았어요</p>
+      <p className="text-sm text-muted">이런 강점도 주셨어요</p>
       <p className="mt-1 text-base">
         {rows.map((row) => row.nameKo).join(" · ")}
       </p>
@@ -84,7 +84,7 @@ export function ResultChart({
   strengthRows: readonly StrengthRatioRow[];
 }) {
   if (strengthRows.length === 0) {
-    return <EmptyState title="아직 집계할 것이 없어요" />;
+    return <EmptyState title="아직 발견된 강점이 없어요" />;
   }
 
   const { mentioned } = splitByVisibility(strengthRows);
@@ -134,7 +134,7 @@ export function ResultChart({
 
       {ranked.length === 0 ? (
         <div className="mt-6">
-          <EmptyState title="받은 강점이 모두 5% 아래예요. 아래 이름으로 확인해주세요" />
+          <EmptyState title="주신 강점이 모두 5% 아래예요. 아래 이름으로 확인해주세요" />
         </div>
       ) : (
         <ul className="mt-6 flex flex-col gap-2.5 border-t border-line pt-6">

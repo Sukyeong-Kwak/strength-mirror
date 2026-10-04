@@ -40,14 +40,14 @@ export function HiddenStrengths({ hidden }: { hidden: Hidden }) {
       {hidden.untouched.length > 0 && (
         <div>
           <p className="text-sm text-muted">
-            아직 아무도 고르지 않았어요. 이런 모습을 본 적 있다면 남겨보세요.
+            아직 아무도 발견하지 않았어요. 이런 모습을 본 적 있다면 남겨보세요.
           </p>
           <StrengthChips items={hidden.untouched} />
         </div>
       )}
       {hidden.rare.length > 0 && (
         <div>
-          <p className="text-sm text-muted">드물게 나왔어요.</p>
+          <p className="text-sm text-muted">드물게 발견됐어요.</p>
           <StrengthChips items={hidden.rare} />
         </div>
       )}

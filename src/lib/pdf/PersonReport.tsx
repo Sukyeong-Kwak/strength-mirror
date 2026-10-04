@@ -52,7 +52,7 @@ export function PersonReport({ data }: { data: PersonReportData }) {
         <Text style={s.brand}>강점 발굴 · {todayLabel()}</Text>
         <Text style={s.title}>{subject}의 강점</Text>
         <Text style={s.subtitle}>
-          {data.groupLabel} · 곁에 있는 사람들이 발견한, 하나님이 {subject}에게 주신 강점
+          {data.groupLabel} · 곁에 있는 사람들이 발견한, 하나님께서 {subject}에게 주신 강점
         </Text>
 
         {data.rows.length === 0 ? (
@@ -102,7 +102,7 @@ export function PersonReport({ data }: { data: PersonReportData }) {
               {/* 사이트 강점 카드의 마지막 줄과 같다 */}
               {data.distinctive[0] !== undefined && (
                 <Text style={[s.small, s.muted]}>
-                  모두와 견줘 유독 많이 보인 강점 ·{" "}
+                  모두와 견줘 유독 드러난 강점 ·{" "}
                   <Text style={[s.name, { fontSize: 11, color: COLOR.ink }]}>
                     {strengthName(data.distinctive[0].code)}
                   </Text>
@@ -112,8 +112,8 @@ export function PersonReport({ data }: { data: PersonReportData }) {
 
             {data.distinctive.length > 0 && (
               <Section
-                title="유독 많이 보인 강점"
-                lead={`많이 받은 순이 아니라, 모두와 견줘 ${subject}에게서 특히 더 드러난 강점이에요.`}
+                title="유독 드러난 강점"
+                lead={`많이 발견된 순이 아니라, 모두와 견줘 ${subject}에게 주신 강점 중 특히 더 드러난 강점이에요.`}
               >
                 {data.distinctive.map((d) => {
                   const strength = getStrength(d.code);
@@ -148,7 +148,7 @@ export function PersonReport({ data }: { data: PersonReportData }) {
               ))}
               {mentioned.length > 0 && (
                 <Text style={[s.small, s.muted, { marginTop: 4 }]}>
-                  이런 강점도 받았어요 · {strengthNames(mentioned.map((r) => r.strengthCode))}
+                  이런 강점도 주셨어요 · {strengthNames(mentioned.map((r) => r.strengthCode))}
                 </Text>
               )}
             </Section>
@@ -176,8 +176,8 @@ export function PersonReport({ data }: { data: PersonReportData }) {
                 />
                 <MatchBlock
                   title="서로 채워주는 사람"
-                  lead={`${subject}에게서 아직 발견되지 않은 강점이 많이 보인 사람이에요. 서로 다른 강점을 주셔서, 퍼즐의 옆 조각처럼 함께 채워가요.`}
-                  label="이분에게서 많이 보인 강점"
+                  lead={`${subject}에게서 아직 발견되지 않은 강점을 많이 주신 사람이에요. 서로 다른 강점을 주셔서, 퍼즐의 옆 조각처럼 함께 채워가요.`}
+                  label="이분에게 많이 주신 강점"
                   entries={data.complement}
                 />
               </Section>

@@ -70,7 +70,7 @@ export default async function StrengthCardPage({ params }: CardPageProps) {
       <div className="mt-4">
         {top.length === 0 ? (
           <EmptyState
-            title={`아직 ${person.name}님에게 남겨진 강점이 없어요. 첫 번째로 남겨보세요`}
+            title={`아직 ${person.name}님에게서 발견한 강점이 없어요. 첫 번째로 남겨보세요`}
             action={
               <Link href={`/p/${person.id}`} className={buttonClass("primary", false, "md")}>
                 강점 남기러 가기
@@ -91,7 +91,7 @@ export default async function StrengthCardPage({ params }: CardPageProps) {
               <ShareButton title="강점 카드" />
             </div>
             <p className="mt-3 text-sm text-muted">
-              화면을 캡처해 간직해도 좋아요. 이야기는 받은 것 중에서 한 줄씩 골랐어요.
+              화면을 캡처해 간직해도 좋아요. 이야기는 남겨준 것 중에서 한 줄씩 골랐어요.
             </p>
           </>
         )}

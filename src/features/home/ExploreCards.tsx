@@ -84,7 +84,7 @@ export function ExploreCards({ people, omit, showHeading = true }: ExploreCardsP
             <Link href="/results" className={CARD}>
               <span className="font-display text-lg">모두의 강점</span>
               <span className="mt-1 block text-sm text-muted">
-                우리 모임의 결 · 조마다의 색 · 아직 숨은 강점 · PDF로 받기
+                우리에게 주신 강점 · 조마다의 색 · 아직 숨은 강점 · PDF로 받기
               </span>
             </Link>
           </li>

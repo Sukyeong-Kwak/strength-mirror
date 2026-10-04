@@ -100,10 +100,11 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
       </p>
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <a href="/results/report" download className={buttonClass("primary", false, "md")}>
+        {/* 보기 전환(히트맵 · 순위)과 조 고르기가 검은 버튼이다. 곁길인 PDF 까지 검으면 위계가 사라진다 */}
+        <a href="/results/report" download className={buttonClass("secondary", false, "md")}>
           전체 결과 PDF로 받기
         </a>
-        <p className="text-sm text-muted">조마다의 결, 한 사람 한 사람의 강점까지 담겨요</p>
+        <p className="text-sm text-muted">조마다의 결, 한 사람 한 사람에게 주신 강점까지 담겨요</p>
       </div>
 
       <div className="mt-4">

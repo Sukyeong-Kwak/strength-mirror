@@ -146,9 +146,16 @@ export function StrengthBoard({ person, people }: StrengthBoardProps) {
 
   return (
     <div>
-      <p className="mt-2 text-sm text-muted">
-        이 사람 하면 떠오르는 강점을 골라보세요. 여러 개라면 하나씩 차례로 남기면 돼요.
-      </p>
+      {/*
+        이 화면의 할 일은 강점을 고르는 것이다. 위의 '주신 강점 보기 · PDF' 는 곁길이라
+        선을 긋고, 안내를 작은 회색 글씨가 아니라 제목으로 세운다
+      */}
+      <div className="mt-6 border-t border-line pt-6">
+        <h2 className="text-lg">어떤 강점을 발견했나요?</h2>
+        <p className="mt-1 text-sm text-muted">
+          이 사람에게서 발견한, 하나님께서 주신 강점을 골라보세요. 여러 개라면 하나씩 차례로 남기면 돼요.
+        </p>
+      </div>
 
       {/*
         고르는 사람에게는 스물넷이 한 화면에 들어오는 것이 가장 중요하다.

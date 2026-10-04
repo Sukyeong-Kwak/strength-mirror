@@ -25,19 +25,15 @@ export default async function HomePage() {
       {/* 설명 글줄은 격자를 따라 늘리지 않는다. 넓은 화면에서 한 줄이 길면 안 읽힌다 */}
       <div className="mt-3 max-w-prose">
         <p>
-          큰 판에 서로의 이름을 적어두고, 그 사람에게 잘 어울리는 강점 스티커를
+          큰 판에 서로의 이름을 적어두고, 그 사람에게 주신 강점을 찾아 스티커를
           붙여주던 그 놀이를 화면으로 옮겼어요.
         </p>
 
         <ul className="mt-4 flex flex-col gap-2 border-l-2 border-line pl-4 text-sm text-muted">
-          <li>하나님이 내게 주신 강점을, 곁에 있던 사람의 눈으로 발견하게 돼요.</li>
+          <li>하나님께서 내게 주신 강점을, 곁에 있던 사람의 눈으로 발견하게 돼요.</li>
           <li>평소엔 쑥스러워 못 했던 칭찬을 조금 구체적으로 건네는 일이에요.</li>
           <li>모이고 나면 우리에게 어떤 강점들을 주셨는지 한눈에 보여요.</li>
         </ul>
-
-        <p className="mt-4 text-sm text-muted">
-          떠오르는 사람부터, 생각나는 만큼만 남겨도 충분해요.
-        </p>
       </div>
 
       {/*
@@ -54,7 +50,16 @@ export default async function HomePage() {
       </div>
 
       {/* 둘러보기의 '내 강점' 칸이 여기로 내려온다 */}
-      <div id="people" className="mt-6 scroll-mt-6">
+      {/*
+        이 화면에서 해야 할 일은 이름을 고르는 것이다. 안내를 소개 끝이 아니라
+        명단 바로 위에 두어 명단의 제목이 되게 한다. 소개와 둘러보기를 지나
+        내려온 눈이 여기서 무엇을 할지 다시 붙잡는다
+      */}
+      <div id="people" className="mt-8 scroll-mt-6">
+        <h2 className="text-lg">누구의 강점을 발견했나요?</h2>
+        <p className="mt-1 mb-3 text-sm text-muted">
+          떠오르는 사람부터, 생각나는 만큼만 남겨도 충분해요.
+        </p>
         <PeopleBrowser people={people} />
       </div>
 

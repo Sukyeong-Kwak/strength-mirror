@@ -7,7 +7,6 @@ import {
   HEATMAP_RATIO_MIN_AREA,
 } from "@/lib/constants";
 import { buildHeatmap, tintPercent, type HeatmapTile } from "@/lib/heatmap";
-import { getStrength, VIRTUE_META } from "@/lib/strengths";
 import type { Rect } from "@/lib/treemap";
 import type { StrengthRatioRow } from "@/types/domain";
 
@@ -134,112 +133,14 @@ export function StrengthHeatmap({
         />
       </div>
 
-      <SmallTiles
-        tiles={blocks.flatMap((block) => block.tiles)}
-        maxRatio={maxRatio}
-      />
+      {/*
+        작은 칸 이름 모음(SmallTiles)은 싣지 않는다. 바로 아래 '아직 숨은 강점' 이
+        같은 강점을 같은 말로 보여주므로, 두 번 늘어놓으면 화면만 길어진다
+      */}
 
       <p className="mt-3 text-sm text-muted">
         작은 칸도 자리를 남기느라 실제 비율보다 조금 크게 그렸어요.
       </p>
     </div>
-  );
-}
-
-/**
- * 판에서 이름이 안 보이는 칸들.
- *
- * 5% 눈금 아래로 내려간 강점은 칸이 20px 남짓이라 글자가 들어가지 않는다.
- * 판 위에서는 옅은 색과 빈 칸으로 "여기 뭔가 있다" 까지만 말할 수 있고,
- * 그게 무엇인지는 말하지 못한다. 그래서 이름을 판 아래에 글자로 적는다.
- *
- * 손을 올리면 나오게 하지 않는다. 이 앱은 손가락으로 쓰는 앱이라
- * hover 가 없는 기기에서는 그 이름을 볼 방법이 사라진다.
- *
- * 두 줄로 나누는 것은 판이 이미 두 색으로 갈라 놓았기 때문이다.
- * 적게 받은 것과 아직 아무도 안 고른 것은 다른 이야기다 —
- * 앞은 누군가 봐준 것이고, 뒤는 아직 아무도 못 본 것이다.
- *
- * 이름에 판의 칸 색을 그대로 입힌다. 전에는 "빈 칸 · 아직 아무도 고르지
- * 않았어요" 라고 적었는데, 앞의 "빈 칸" 은 보면 아는 것을 글자로 옮긴 말이라
- * 자리만 차지했다. 이름 자체를 그 칸처럼 그리면 그 말이 필요 없다.
- *
- * 덤으로 받은 쪽은 덕목 색이 남는다. 가운뎃점으로 이어 붙인 목록은 어느
- * 갈래에서 나온 이름인지를 지우고 이름만 남겼었다. 아직 아무도 안 고른
- * 쪽이 색 없이 비어 있는 것은 판에서도 그렇기 때문이고, 그것이 맞다 —
- * 아무도 안 골랐으니 어느 덕목으로도 기울지 않았다.
- *
- * 머리글은 작고 흐리게 두고 이름을 크게 둔다. 이 앱의 섹션 라벨이 전부
- * 그렇고(globals.css 의 h2 주석), 여기 온 사람이 찾는 것은 "빈 칸" 이라는
- * 말이 아니라 강점 이름이다.
- */
-function SmallTiles({
-  tiles,
-  maxRatio,
-}: {
-  tiles: readonly HeatmapTile[];
-  maxRatio: number;
-}) {
-  // VIA 표의 차례로 적는다. 판의 자리 순서로 적으면 읽는 차례가 들쭉날쭉하다
-  const unlabelled = tiles
-    .filter((tile) => tile.ratio === 0)
-    .sort(
-      (a, b) =>
-        getStrength(a.strengthCode).order - getStrength(b.strengthCode).order,
-    );
-
-  const traces = unlabelled.filter((tile) => tile.received);
-  const empties = unlabelled.filter((tile) => !tile.received);
-
-  if (unlabelled.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="mt-4 flex flex-col gap-4 rounded-base border border-line bg-surface px-4 py-4">
-      {traces.length > 0 && (
-        <section>
-          <h3 className="text-sm text-muted">5%에 못 미쳤어요</h3>
-          <NameChips tiles={traces} maxRatio={maxRatio} />
-        </section>
-      )}
-
-      {empties.length > 0 && (
-        <section>
-          <h3 className="text-sm text-muted">아직 아무도 고르지 않았어요</h3>
-          <NameChips tiles={empties} maxRatio={maxRatio} />
-        </section>
-      )}
-    </div>
-  );
-}
-
-/**
- * 판의 칸을 그대로 이름표로 만든 것. 색과 테두리와 모서리가 판과 같아야 한다.
- *
- * 높이를 26px 로 눌러 둔다. 흰 바탕에 선 테두리는 이 앱의 secondary 버튼과
- * 같은 차림이라 그냥 두면 눌러보게 된다. 가장 작은 버튼이 36px 이므로
- * 그 아래로 내려가면 누르는 것이 아니라는 뜻이 된다 — 명단의 "남겼어요"
- * 배지가 쓰는 것과 같은 수법이다.
- */
-function NameChips({
-  tiles,
-  maxRatio,
-}: {
-  tiles: readonly HeatmapTile[];
-  maxRatio: number;
-}) {
-  return (
-    <ul className="mt-2 flex flex-wrap gap-1.5">
-      {tiles.map((tile) => (
-        <li
-          key={tile.strengthCode}
-          className="rounded-[3px] px-2 py-0.5 text-base leading-snug"
-          style={fill(tile, VIRTUE_META[tile.virtue].colorVar, maxRatio)}
-        >
-          {tile.nameKo}
-        </li>
-      ))}
-    </ul>
   );
 }

@@ -45,7 +45,7 @@ export function OverallReport({ data }: { data: OverallReportData }) {
         <Text style={s.brand}>강점 발굴 · {todayLabel()}</Text>
         <Text style={s.title}>모두의 강점</Text>
         <Text style={s.subtitle}>
-          하나님이 우리 한 사람 한 사람에게 주신 강점을 함께 발견했어요.
+          하나님께서 우리 한 사람 한 사람에게 주신 강점을 함께 발견했어요.
         </Text>
 
         {data.overall.length === 0 ? (
@@ -74,7 +74,7 @@ export function OverallReport({ data }: { data: OverallReportData }) {
               ))}
               {mentioned.length > 0 && (
                 <Text style={[s.small, s.muted, { marginTop: 4 }]}>
-                  드물게 나온 강점 · {strengthNames(mentioned.map((r) => r.strengthCode))}
+                  드물게 발견된 강점 · {strengthNames(mentioned.map((r) => r.strengthCode))}
                 </Text>
               )}
             </Section>
@@ -102,7 +102,7 @@ export function OverallReport({ data }: { data: OverallReportData }) {
                           </Text>
                         )}
                         <Text style={[s.small, { marginTop: 3 }]}>
-                          <Text style={s.muted}>많이 보인 강점 · </Text>
+                          <Text style={s.muted}>많이 주신 강점 · </Text>
                           {strengthNames(profile.top)}
                         </Text>
                         {profile.distinctive !== null && (
@@ -131,13 +131,13 @@ export function OverallReport({ data }: { data: OverallReportData }) {
                 <>
                   {data.hidden.untouched.length > 0 && (
                     <Text>
-                      <Text style={s.muted}>아직 아무도 고르지 않았어요 · </Text>
+                      <Text style={s.muted}>아직 아무도 발견하지 않았어요 · </Text>
                       {data.hidden.untouched.map((x) => x.nameKo).join(", ")}
                     </Text>
                   )}
                   {data.hidden.rare.length > 0 && (
                     <Text>
-                      <Text style={s.muted}>드물게 나왔어요 · </Text>
+                      <Text style={s.muted}>드물게 발견됐어요 · </Text>
                       {data.hidden.rare.map((x) => x.nameKo).join(", ")}
                     </Text>
                   )}
@@ -183,7 +183,7 @@ export function OverallReport({ data }: { data: OverallReportData }) {
                       </View>
                       {split.mentioned.length > 0 && (
                         <Text style={[s.small, s.muted]}>
-                          드물게 나온 강점 · {strengthNames(split.mentioned.map((r) => r.strengthCode))}
+                          드물게 발견된 강점 · {strengthNames(split.mentioned.map((r) => r.strengthCode))}
                         </Text>
                       )}
                     </View>
@@ -222,7 +222,7 @@ export function OverallReport({ data }: { data: OverallReportData }) {
                   >
                     <Text style={[s.name, { width: 90 }]}>{person.name}</Text>
                     <Text style={{ flex: 1, color: person.top.length === 0 ? COLOR.muted : COLOR.ink }}>
-                      {person.top.length === 0 ? "아직 받은 강점이 없어요" : strengthNames(person.top)}
+                      {person.top.length === 0 ? "아직 발견한 강점이 없어요" : strengthNames(person.top)}
                     </Text>
                   </View>
                 </View>

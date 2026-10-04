@@ -66,8 +66,8 @@ export function PeopleMatches({ subject, similar, complement }: PeopleMatchesPro
       />
       <MatchList
         title="서로 채워주는 사람"
-        description={`${subject}에게서 아직 발견되지 않은 강점이 많이 보인 사람이에요. 서로 다른 강점을 주셔서, 퍼즐의 옆 조각처럼 함께 채워가요.`}
-        strengthsLabel="이분에게서 많이 보인 강점"
+        description={`${subject}에게서 아직 발견되지 않은 강점을 많이 주신 사람이에요. 서로 다른 강점을 주셔서, 퍼즐의 옆 조각처럼 함께 채워가요.`}
+        strengthsLabel="이분에게 많이 주신 강점"
         entries={complement}
       />
     </div>

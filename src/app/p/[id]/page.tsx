@@ -72,7 +72,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
         <ReportDownload personId={person.id} name={person.name} variant="secondary" />
       </div>
       <p className="mt-2 text-sm text-muted">
-        강점 카드, 유독 많이 보인 강점, 결이 비슷한 사람까지 볼 수 있고, 모두 PDF 한 파일로
+        강점 카드, 유독 드러난 강점, 결이 비슷한 사람까지 볼 수 있고, 모두 PDF 한 파일로
         받을 수 있어요.
       </p>
 
