@@ -1,6 +1,17 @@
+"use client";
+
 import Link from "next/link";
+import { useMemo } from "react";
+
+import { Button } from "@/components/Button";
+import { collectGroupNames, toGroupLabel } from "@/lib/groups";
+import { saveMe } from "@/lib/submitted";
+import { useMe } from "@/lib/useLocalStore";
+import type { Person } from "@/types/domain";
 
 type ExploreCardsProps = {
+  /** 지금 화면의 명단. 내 이름은 여기서만 고른다 */
+  people: readonly Person[];
   /** 지금 있는 화면의 칸은 뺀다. 모두의 강점 화면에서 모두의 강점으로 가는 칸은 군더더기다 */
   omit?: "results";
   /** 바깥에 이미 제목이 있으면 끈다 */
@@ -17,21 +28,71 @@ const CARD =
  * 보고 안 누르는 것은 괜찮지만 몰라서 못 누르면 안 된다.
  * 그래서 명단 위에 칸으로 펼치고, 칸마다 안에 무엇이 있는지 한 줄씩 적는다.
  *
- * 로그인이 없으므로 '나' 를 따로 기억하지 않는다. 내 결과는 명단에서 내 이름을 눌러 본다.
+ * 내 이름은 등록된 명단에서만 고른다. 손으로 치게 두면 명단에 없는 이름이 생긴다.
+ * 고른 이름은 이 기기에만 기억한다 (lib/submitted 의 saveMe).
  */
-export function ExploreCards({ omit, showHeading = true }: ExploreCardsProps) {
+export function ExploreCards({ people, omit, showHeading = true }: ExploreCardsProps) {
+  const meId = useMe();
+  // 명단이 바뀌었거나 다른 모드라 지금 명단에 없으면 고르지 않은 것으로 본다
+  const me = useMemo(
+    () => people.find((person) => person.id === meId) ?? null,
+    [people, meId],
+  );
+  const groups = useMemo(() => collectGroupNames(people), [people]);
+
   return (
     <section aria-label="둘러보기">
       {showHeading && <h2 className="mb-2 text-sm text-muted">둘러보기</h2>}
       <ul className={`grid gap-2 ${omit === undefined ? "sm:grid-cols-2" : ""}`}>
         <li>
-          <Link href="/#people" className={CARD}>
-            <span className="font-display text-lg">내 강점</span>
-            <span className="mt-1 block text-sm text-muted">
-              명단에서 내 이름을 누르면 강점 카드, 유독 많이 보인 강점, 결이 비슷한 사람까지
-              보고 PDF로 받을 수 있어요
-            </span>
-          </Link>
+          {me !== null ? (
+            <div className={CARD}>
+              <Link href={`/p/${me.id}/result`} className="block">
+                <span className="font-display text-lg">{me.name}님의 강점</span>
+                <span className="mt-1 block text-sm text-muted">
+                  받은 강점 · 내가 남긴 강점 · 결이 비슷한 사람 · PDF로 받기
+                </span>
+              </Link>
+              <div className="mt-auto pt-2">
+                <Button variant="quiet" size="sm" onClick={() => saveMe(null)}>
+                  다른 이름으로 바꾸기
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className={CARD}>
+              <label htmlFor="pick-me" className="font-display text-lg">
+                내 강점
+              </label>
+              <span className="mt-1 block text-sm text-muted">
+                명단에서 내 이름을 골라두면 받은 강점과 내가 남긴 강점을 바로 볼 수 있어요.
+                이 기기에만 기억해요.
+              </span>
+              <select
+                id="pick-me"
+                value=""
+                onChange={(event) => {
+                  if (event.target.value !== "") {
+                    saveMe(event.target.value);
+                  }
+                }}
+                className="mt-3 min-h-11 w-full rounded-base border border-line bg-surface px-3 text-base"
+              >
+                <option value="">내 이름 고르기</option>
+                {groups.map((group) => (
+                  <optgroup key={group} label={group}>
+                    {people
+                      .filter((person) => toGroupLabel(person.groupName) === group)
+                      .map((person) => (
+                        <option key={person.id} value={person.id}>
+                          {person.name}
+                        </option>
+                      ))}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
+          )}
         </li>
 
         {omit !== "results" && (

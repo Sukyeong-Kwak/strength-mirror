@@ -123,6 +123,8 @@ export function StrengthBoard({ person }: StrengthBoardProps) {
           personId: person.id,
           strengthCode: strength.code,
           createdAt: new Date().toISOString(),
+          // '내가 남긴 강점' 에서 다시 보여준다. 이 기기에만 남는다
+          reason: trimmedReason,
         }),
       );
       saveDraft(person.id, strength.code, "");

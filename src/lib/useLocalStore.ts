@@ -3,6 +3,8 @@
 import { useSyncExternalStore } from "react";
 
 import {
+  getMe,
+  getMeOnServer,
   getMyGroup,
   getMyGroupOnServer,
   getSubmissions,
@@ -32,3 +34,7 @@ export function useSavedGroup(): string | null {
   return useSyncExternalStore(subscribeStorage, getMyGroup, getMyGroupOnServer);
 }
 
+
+export function useMe(): string | null {
+  return useSyncExternalStore(subscribeStorage, getMe, getMeOnServer);
+}

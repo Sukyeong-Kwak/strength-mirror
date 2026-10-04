@@ -5,9 +5,11 @@ import { notFound } from "next/navigation";
 import { buttonClass } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { DistinctiveList } from "@/features/insights/DistinctiveList";
+import { MeToggle } from "@/features/insights/MeToggle";
 import { PeopleMatches, type MatchEntry } from "@/features/insights/PeopleMatches";
 import { ReportDownload } from "@/features/insights/ReportDownload";
 import { InsightSection, SectionNav, type SectionLink } from "@/features/insights/SectionNav";
+import { SentByMe } from "@/features/insights/SentByMe";
 import { StrengthCard } from "@/features/insights/StrengthCard";
 import { ResultChart } from "@/features/results/ResultChart";
 import { getPerson, listPeople } from "@/lib/data/people";
@@ -108,6 +110,10 @@ export default async function PersonResultPage({ params }: ResultPageProps) {
       <h1 className="mt-4 text-2xl">{person.name}님이 받은 강점</h1>
       <p className="mt-1 text-sm text-muted">{toGroupLabel(person.groupName)}</p>
 
+      <div className="mt-3">
+        <MeToggle personId={person.id} />
+      </div>
+
       {/* 이 화면의 모든 것을 한 파일로. 간직할 수 있는 결과물이라 눈에 띄게 둔다 */}
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <ReportDownload personId={person.id} name={person.name} />
@@ -178,6 +184,15 @@ export default async function PersonResultPage({ params }: ResultPageProps) {
           <PeopleMatches subject={subject} similar={similar} complement={complement} />
         </InsightSection>
       )}
+
+      <SentByMe
+        personId={person.id}
+        people={people.map((p) => ({
+          id: p.id,
+          name: p.name,
+          groupLabel: toGroupLabel(p.groupName),
+        }))}
+      />
 
       {reasons.length > 0 && (
         <InsightSection id="stories" title="남겨준 이야기">

@@ -83,6 +83,11 @@ export type MySubmission = {
   personId: string;
   strengthCode: StrengthCode;
   createdAt: string;
+  /**
+   * 남긴 사유. 이 기기에만 있다 — '내가 남긴 강점' 에서 다시 보여준다.
+   * 이 칸이 생기기 전에 남긴 기록에는 없다
+   */
+  reason?: string;
 };
 
 /** 개인 결과 페이지의 사유 카드 */

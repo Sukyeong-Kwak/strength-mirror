@@ -128,3 +128,19 @@ describe("withDraft", () => {
     expect(before).toEqual({ kindness: "늘 먼저" });
   });
 });
+
+describe("parseSubmissions — 사유", () => {
+  const base = { personId: "p", strengthCode: "kindness", createdAt: "2026-01-01" };
+
+  it("사유가 있으면 함께 읽고, 없어도 받아들인다", () => {
+    const raw = JSON.stringify([{ ...base, reason: "고마웠어요 정말로" }, base]);
+    const out = parseSubmissions(raw);
+    expect(out).toHaveLength(2);
+    expect(out[0]?.reason).toBe("고마웠어요 정말로");
+    expect(out[1]?.reason).toBeUndefined();
+  });
+
+  it("사유가 글자가 아니면 그 줄은 버린다", () => {
+    expect(parseSubmissions(JSON.stringify([{ ...base, reason: 3 }]))).toEqual([]);
+  });
+});

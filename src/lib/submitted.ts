@@ -26,7 +26,8 @@ function isMySubmission(value: unknown): value is MySubmission {
   return (
     typeof row.personId === "string" &&
     typeof row.createdAt === "string" &&
-    isStrengthCode(row.strengthCode)
+    isStrengthCode(row.strengthCode) &&
+    (row.reason === undefined || typeof row.reason === "string")
   );
 }
 
@@ -245,6 +246,31 @@ export function getMyGroupOnServer(): null {
 
 export function saveMyGroup(group: string): void {
   writeRaw(STORAGE_KEYS.myGroup, group);
+  notify();
+}
+
+/**
+ * 내 이름으로 골라둔 사람.
+ *
+ * 홈에서 '내 강점' 을 바로 열고, 내 결과 화면에서 '내가 남긴 강점' 을 보여주기 위한
+ * 책갈피다. 서버로 보내지 않으므로 누가 누구인지는 이 기기만 안다.
+ * 로그인이 없어서 누구나 아무 이름이나 고를 수 있다 — 그래서 이 값으로
+ * 서버에서 무언가를 꺼내 오면 안 된다. 이 기기에 있는 것만 보여준다.
+ */
+export function getMe(): string | null {
+  return readRaw(STORAGE_KEYS.me);
+}
+
+export function getMeOnServer(): null {
+  return null;
+}
+
+export function saveMe(personId: string | null): void {
+  if (personId === null) {
+    removeRaw(STORAGE_KEYS.me);
+  } else {
+    writeRaw(STORAGE_KEYS.me, personId);
+  }
   notify();
 }
 

@@ -165,7 +165,7 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
       )}
 
       <InsightSection id="more" title="나에 대해 더 보기">
-        <ExploreCards omit="results" showHeading={false} />
+        <ExploreCards people={people} omit="results" showHeading={false} />
       </InsightSection>
     </main>
   );
