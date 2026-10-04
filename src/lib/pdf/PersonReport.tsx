@@ -59,7 +59,7 @@ export function PersonReport({ data }: { data: PersonReportData }) {
           </Section>
         ) : (
           <>
-            <Section title="가장 많이 보인 강점">
+            <Section title="주신 강점">
               <View style={{ flexDirection: "column" }}>
                 {data.top.map((item) => {
                   const strength = getStrength(item.code);
@@ -147,7 +147,7 @@ export function PersonReport({ data }: { data: PersonReportData }) {
               문구는 모두 lib/strengths.ts 와 lib/strengthText.ts 에서 온다. 여기서 새로 쓰지 않는다
             */}
             <Section
-              title="가장 많이 보인 강점, 더 자세히"
+              title="주신 강점, 더 자세히"
               lead="사이트의 '24가지 강점' 설명과 같은 내용이에요."
             >
               {data.top.map((item) => (
