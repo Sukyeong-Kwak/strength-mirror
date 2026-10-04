@@ -5,6 +5,7 @@ import { useMemo, useRef, useState, useTransition } from "react";
 
 import { submitFeedback } from "@/actions/submitFeedback";
 import { Button, buttonClass } from "@/components/Button";
+import { PersonSelect } from "@/components/PersonSelect";
 import { Sheet } from "@/components/Sheet";
 import { StrengthInfo } from "@/features/strengths/StrengthInfo";
 import { MAX_REASON_LENGTH, MIN_REASON_LENGTH } from "@/lib/constants";
@@ -14,14 +15,17 @@ import {
   newSubmissionKey,
   readDraft,
   saveDraft,
+  saveMe,
   saveSubmissions,
   submittedCodesFor,
 } from "@/lib/submitted";
-import { useSubmissions } from "@/lib/useLocalStore";
+import { useMe, useSubmissions } from "@/lib/useLocalStore";
 import type { ActionResult, Person } from "@/types/domain";
 
 type StrengthBoardProps = {
   person: Person;
+  /** 지금 화면의 명단. '남기는 사람' 은 여기서만 고른다 */
+  people: readonly Person[];
 };
 
 /** 사유를 쓰는 중인지, 확인 화면인지 */
@@ -39,9 +43,12 @@ type WriteStep = "write" | "confirm";
  * 쓰던 사유는 강점마다 이 기기에 남겨둔다. 시트를 잘못 닫아도
  * 같은 강점을 다시 누르면 이어서 쓴다.
  *
- * 이름은 묻지 않는다. 결과는 누구나 볼 수 있으므로 남긴 사람은 모두 익명이다.
+ * 남기는 사람은 등록된 명단에서 고르게 한다. 고른 이름은 이 기기의 '내 이름' 이 되어
+ * 내 결과 화면의 '내가 남긴 강점' 에 모인다. 서버에는 보내지 않는다 — 로그인이 없어
+ * 누구나 아무 이름이나 고를 수 있으므로, 서버에 남기면 익명이 깨질 뿐 믿을 수도 없다.
+ * 결과 화면에서 남긴 사람은 모두 익명이다.
  */
-export function StrengthBoard({ person }: StrengthBoardProps) {
+export function StrengthBoard({ person, people }: StrengthBoardProps) {
   const [info, setInfo] = useState<Strength | null>(null);
   const [writing, setWriting] = useState<Strength | null>(null);
   const [step, setStep] = useState<WriteStep>("write");
@@ -51,6 +58,9 @@ export function StrengthBoard({ person }: StrengthBoardProps) {
   const [pending, startTransition] = useTransition();
 
   const mine = useSubmissions();
+  const meId = useMe();
+  // 지금 명단에 없는 사람(다른 모드 · 지운 사람)이면 고르지 않은 것으로 본다
+  const me = people.find((p) => p.id === meId) ?? null;
 
   /**
    * 이 제출에 쓸 멱등 키.
@@ -262,8 +272,20 @@ export function StrengthBoard({ person }: StrengthBoardProps) {
                 ? `${MIN_REASON_LENGTH - trimmedReason.length}자만 더 쓰면 남길 수 있어요`
                 : `${trimmedReason.length}자`}
             </p>
+            <label htmlFor="author" className="mt-5 block text-sm text-muted">
+              남기는 사람
+            </label>
+            <PersonSelect
+              id="author"
+              people={people}
+              value={me?.id ?? null}
+              onChange={saveMe}
+              emptyLabel="고르지 않고 남기기"
+              className="mt-2"
+            />
             <p className="mt-3 text-sm text-muted">
-              남긴 글은 누구나 볼 수 있고, 남긴 사람은 익명으로 보여요
+              남긴 글은 누구나 볼 수 있고, 남긴 사람은 익명으로 보여요. 고른 이름은 이 기기에만
+              기억해서, 내 결과 화면에 내가 남긴 강점으로 모아줘요.
             </p>
 
             {error !== null && (
@@ -281,6 +303,13 @@ export function StrengthBoard({ person }: StrengthBoardProps) {
             </p>
 
             <dl className="mt-4 flex flex-col gap-4">
+              <div>
+                <dt className="text-sm text-muted">남기는 사람</dt>
+                <dd className="mt-1 text-base">
+                  {me === null ? "고르지 않음" : me.name}
+                  <span className="text-sm text-muted"> · 결과에는 익명으로 보여요</span>
+                </dd>
+              </div>
               <div>
                 <dt className="text-sm text-muted">누구에게</dt>
                 <dd className="font-display mt-1 text-base">{person.name}</dd>

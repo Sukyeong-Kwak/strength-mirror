@@ -51,7 +51,7 @@ export function OverallReport({ data }: { data: OverallReportData }) {
           </Section>
         ) : (
           <>
-            <Section title="우리는 어느 쪽에 모였나" lead="여섯 덕목으로 본 우리 모임의 결이에요.">
+            <Section title="우리에게 주신 강점은?" lead="여섯 덕목으로 본, 우리 모임에 주신 강점이에요.">
               <VirtueStrip segments={virtues} />
             </Section>
 

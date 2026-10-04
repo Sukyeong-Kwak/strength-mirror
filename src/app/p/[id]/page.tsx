@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { buttonClass } from "@/components/Button";
 import { StrengthBoard } from "@/features/feedback/StrengthBoard";
 import { ReportDownload } from "@/features/insights/ReportDownload";
-import { getPerson } from "@/lib/data/people";
+import { getPerson, listPeople } from "@/lib/data/people";
 import { toGroupLabel } from "@/lib/groups";
 
 type PersonPageProps = {
@@ -30,7 +30,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
     notFound();
   }
 
-  const person = await getPerson(id);
+  const [person, people] = await Promise.all([getPerson(id), listPeople()]);
   if (person === null) {
     notFound();
   }
@@ -76,7 +76,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
         받을 수 있어요.
       </p>
 
-      <StrengthBoard person={person} />
+      <StrengthBoard person={person} people={people} />
     </main>
   );
 }

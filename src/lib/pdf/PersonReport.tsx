@@ -50,7 +50,7 @@ export function PersonReport({ data }: { data: PersonReportData }) {
         <Text style={s.brand}>강점 발굴 · {todayLabel()}</Text>
         <Text style={s.title}>{subject}의 강점</Text>
         <Text style={s.subtitle}>
-          {data.groupLabel} · 곁에 있는 사람들이 {subject}에게서 본 것들
+          {data.groupLabel} · 곁에 있는 사람들이 발견한, {subject}에게 주신 강점
         </Text>
 
         {data.rows.length === 0 ? (
@@ -121,7 +121,7 @@ export function PersonReport({ data }: { data: PersonReportData }) {
               </Section>
             )}
 
-            <Section title="덕목으로 보면" lead="여섯 덕목 중 어느 쪽에 강점이 모였는지예요.">
+            <Section title="나에게 주신 강점은?" lead={`여섯 덕목으로 본, ${subject}에게 주신 강점이에요.`}>
               <VirtueStrip segments={virtues} />
             </Section>
 

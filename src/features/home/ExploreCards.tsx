@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo } from "react";
 
 import { Button } from "@/components/Button";
-import { collectGroupNames, toGroupLabel } from "@/lib/groups";
+import { PersonSelect } from "@/components/PersonSelect";
 import { saveMe } from "@/lib/submitted";
 import { useMe } from "@/lib/useLocalStore";
 import type { Person } from "@/types/domain";
@@ -38,7 +38,6 @@ export function ExploreCards({ people, omit, showHeading = true }: ExploreCardsP
     () => people.find((person) => person.id === meId) ?? null,
     [people, meId],
   );
-  const groups = useMemo(() => collectGroupNames(people), [people]);
 
   return (
     <section aria-label="둘러보기">
@@ -68,29 +67,14 @@ export function ExploreCards({ people, omit, showHeading = true }: ExploreCardsP
                 명단에서 내 이름을 골라두면 받은 강점과 내가 남긴 강점을 바로 볼 수 있어요.
                 이 기기에만 기억해요.
               </span>
-              <select
+              <PersonSelect
                 id="pick-me"
-                value=""
-                onChange={(event) => {
-                  if (event.target.value !== "") {
-                    saveMe(event.target.value);
-                  }
-                }}
-                className="mt-3 min-h-11 w-full rounded-base border border-line bg-surface px-3 text-base"
-              >
-                <option value="">내 이름 고르기</option>
-                {groups.map((group) => (
-                  <optgroup key={group} label={group}>
-                    {people
-                      .filter((person) => toGroupLabel(person.groupName) === group)
-                      .map((person) => (
-                        <option key={person.id} value={person.id}>
-                          {person.name}
-                        </option>
-                      ))}
-                  </optgroup>
-                ))}
-              </select>
+                people={people}
+                value={null}
+                onChange={saveMe}
+                emptyLabel="내 이름 고르기"
+                className="mt-3"
+              />
             </div>
           )}
         </li>
