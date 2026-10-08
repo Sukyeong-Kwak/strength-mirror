@@ -24,8 +24,10 @@ import type { ActionResult, Person } from "@/types/domain";
 
 type StrengthBoardProps = {
   person: Person;
-  /** 지금 화면의 명단. '남기는 사람' 은 여기서만 고른다 */
+  /** 이 사람과 같은 그룹의 명단. '남기는 사람' 은 여기서만 고른다 */
   people: readonly Person[];
+  /** 그룹 첫 화면. 남긴 뒤 '명단으로' 가 여기로 간다 */
+  homeHref: string;
 };
 
 /** 사유를 쓰는 중인지, 확인 화면인지 */
@@ -48,7 +50,7 @@ type WriteStep = "write" | "confirm";
  * 누구나 아무 이름이나 고를 수 있으므로, 서버에 남기면 익명이 깨질 뿐 믿을 수도 없다.
  * 결과 화면에서 남긴 사람은 모두 익명이다.
  */
-export function StrengthBoard({ person, people }: StrengthBoardProps) {
+export function StrengthBoard({ person, people, homeHref }: StrengthBoardProps) {
   const [info, setInfo] = useState<Strength | null>(null);
   const [writing, setWriting] = useState<Strength | null>(null);
   const [step, setStep] = useState<WriteStep>("write");
@@ -58,8 +60,8 @@ export function StrengthBoard({ person, people }: StrengthBoardProps) {
   const [pending, startTransition] = useTransition();
 
   const mine = useSubmissions();
-  const meId = useMe();
-  // 지금 명단에 없는 사람(다른 모드 · 지운 사람)이면 고르지 않은 것으로 본다
+  const meId = useMe(person.eventId);
+  // 지금 명단에 없는 사람(지운 사람)이면 고르지 않은 것으로 본다
   const me = people.find((p) => p.id === meId) ?? null;
 
   /**
@@ -286,7 +288,7 @@ export function StrengthBoard({ person, people }: StrengthBoardProps) {
               id="author"
               people={people}
               value={me?.id ?? null}
-              onChange={saveMe}
+              onChange={(personId) => saveMe(person.eventId, personId)}
               emptyLabel="고르지 않고 남기기"
               className="mt-2"
             />
@@ -345,7 +347,7 @@ export function StrengthBoard({ person, people }: StrengthBoardProps) {
             <Button variant="secondary" size="lg" onClick={() => setSaved(null)} block>
               더 남기기
             </Button>
-            <Link href="/" className={buttonClass("primary", true, "lg")}>
+            <Link href={homeHref} className={buttonClass("primary", true, "lg")}>
               명단으로
             </Link>
           </div>

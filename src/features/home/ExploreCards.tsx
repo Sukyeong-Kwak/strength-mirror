@@ -5,11 +5,14 @@ import { useMemo } from "react";
 
 import { Button } from "@/components/Button";
 import { PersonSelect } from "@/components/PersonSelect";
+import { eventHref } from "@/lib/eventSlug";
 import { saveMe } from "@/lib/submitted";
 import { useMe } from "@/lib/useLocalStore";
-import type { Person } from "@/types/domain";
+import type { EventInfo, Person } from "@/types/domain";
 
 type ExploreCardsProps = {
+  /** 지금 그룹. '내 이름' 은 그룹마다 따로 기억한다 */
+  event: Pick<EventInfo, "id" | "slug">;
   /** 지금 화면의 명단. 내 이름은 여기서만 고른다 */
   people: readonly Person[];
   /** 지금 있는 화면의 칸은 뺀다. 모두의 강점 화면에서 모두의 강점으로 가는 칸은 군더더기다 */
@@ -29,11 +32,11 @@ const CARD =
  * 그래서 명단 위에 칸으로 펼치고, 칸마다 안에 무엇이 있는지 한 줄씩 적는다.
  *
  * 내 이름은 등록된 명단에서만 고른다. 손으로 치게 두면 명단에 없는 이름이 생긴다.
- * 고른 이름은 이 기기에만 기억한다 (lib/submitted 의 saveMe).
+ * 고른 이름은 이 기기에, 그룹마다 따로 기억한다 (lib/submitted 의 saveMe).
  */
-export function ExploreCards({ people, omit, showHeading = true }: ExploreCardsProps) {
-  const meId = useMe();
-  // 명단이 바뀌었거나 다른 모드라 지금 명단에 없으면 고르지 않은 것으로 본다
+export function ExploreCards({ event, people, omit, showHeading = true }: ExploreCardsProps) {
+  const meId = useMe(event.id);
+  // 명단이 바뀌어 지금 명단에 없으면 고르지 않은 것으로 본다
   const me = useMemo(
     () => people.find((person) => person.id === meId) ?? null,
     [people, meId],
@@ -53,7 +56,7 @@ export function ExploreCards({ people, omit, showHeading = true }: ExploreCardsP
                 </span>
               </Link>
               <div className="mt-auto pt-2">
-                <Button variant="quiet" size="sm" onClick={() => saveMe(null)}>
+                <Button variant="quiet" size="sm" onClick={() => saveMe(event.id, null)}>
                   다른 이름으로 바꾸기
                 </Button>
               </div>
@@ -71,7 +74,7 @@ export function ExploreCards({ people, omit, showHeading = true }: ExploreCardsP
                 id="pick-me"
                 people={people}
                 value={null}
-                onChange={saveMe}
+                onChange={(personId) => saveMe(event.id, personId)}
                 emptyLabel="내 이름 고르기"
                 className="mt-3"
               />
@@ -81,7 +84,7 @@ export function ExploreCards({ people, omit, showHeading = true }: ExploreCardsP
 
         {omit !== "results" && (
           <li>
-            <Link href="/results" className={CARD}>
+            <Link href={eventHref(event.slug, "/results")} className={CARD}>
               <span className="font-display text-lg">모두의 강점</span>
               <span className="mt-1 block text-sm text-muted">
                 우리에게 주신 강점 · 조마다의 색 · 아직 숨은 강점 · PDF로 받기

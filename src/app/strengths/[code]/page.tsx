@@ -4,10 +4,12 @@ import { notFound } from "next/navigation";
 
 import { buttonClass } from "@/components/Button";
 import { StrengthBody } from "@/features/strengths/StrengthBody";
+import { readFromSlug, strengthsHref } from "@/lib/eventSlug";
 import { findStrength, STRENGTHS } from "@/lib/strengths";
 
 type StrengthPageProps = {
   params: Promise<{ code: string }>;
+  searchParams: Promise<{ from?: string | string[] }>;
 };
 
 /** 24개뿐이고 내용이 상수라 전부 미리 만들어 둔다 */
@@ -32,8 +34,10 @@ export async function generateMetadata({
  * 목차에서 카드를 누르면 여기로 온다. 궁금한 하나만 보고 돌아가는 길이라
  * 맨 위에 목차로 돌아가는 버튼을 둔다.
  */
-export default async function StrengthPage({ params }: StrengthPageProps) {
+export default async function StrengthPage({ params, searchParams }: StrengthPageProps) {
   const { code } = await params;
+  // 목차로 돌아가도 어느 그룹에서 왔는지 이어 간다
+  const from = readFromSlug((await searchParams).from);
   const strength = findStrength(code);
   if (strength === null) {
     notFound();
@@ -41,7 +45,7 @@ export default async function StrengthPage({ params }: StrengthPageProps) {
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-6">
-      <Link href="/strengths" className={buttonClass("secondary", false, "sm")}>
+      <Link href={strengthsHref(from)} className={buttonClass("secondary", false, "sm")}>
         24가지 강점 목차
       </Link>
 

@@ -9,14 +9,14 @@ import { useMe } from "@/lib/useLocalStore";
  *
  * 이 기기에만 기억한다. 서버는 누가 누구인지 모른다.
  */
-export function MeToggle({ personId }: { personId: string }) {
-  const me = useMe();
+export function MeToggle({ eventId, personId }: { eventId: string; personId: string }) {
+  const me = useMe(eventId);
 
   if (me === personId) {
     return (
       <p className="flex flex-wrap items-center gap-2 text-sm text-muted">
         내 이름으로 기억해뒀어요. 아래에 내가 남긴 강점이 보여요.
-        <Button variant="quiet" size="sm" onClick={() => saveMe(null)}>
+        <Button variant="quiet" size="sm" onClick={() => saveMe(eventId, null)}>
           해제
         </Button>
       </p>
@@ -24,7 +24,7 @@ export function MeToggle({ personId }: { personId: string }) {
   }
 
   return (
-    <Button variant="secondary" size="sm" onClick={() => saveMe(personId)}>
+    <Button variant="secondary" size="sm" onClick={() => saveMe(eventId, personId)}>
       내 이름이에요 · 내가 남긴 강점도 보기
     </Button>
   );

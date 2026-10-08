@@ -2,7 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { buttonClass } from "@/components/Button";
+import { eventHref, readFromSlug, strengthsHref } from "@/lib/eventSlug";
 import { STRENGTHS_BY_VIRTUE } from "@/lib/strengths";
+
+type StrengthsPageProps = {
+  searchParams: Promise<{ from?: string | string[] }>;
+};
 
 export const metadata: Metadata = {
   title: "24가지 강점 · 강점 발굴",
@@ -22,12 +27,17 @@ export const metadata: Metadata = {
  * 카드는 좁은 화면에서도 두 줄로 깐다. 이름과 한 줄 설명뿐이라 한 칸이 좁아도
  * 읽히고, 한 줄로 세우면 스물넷이 화면 여섯 개 길이가 되어 지도 구실을 못 한다.
  * 넓은 화면에서는 세 줄까지 — 그래서 본문 폭도 읽기 폭이 아니라 격자에 맞춘다.
+ *
+ * 그룹 화면에서 왔으면(?from=) '명단으로' 가 그 그룹으로 돌아간다.
+ * 링크 없이 왔으면 사이트 첫 주소로 간다.
  */
-export default function StrengthsPage() {
+export default async function StrengthsPage({ searchParams }: StrengthsPageProps) {
+  const from = readFromSlug((await searchParams).from);
+
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-6">
-      <Link href="/" className={buttonClass("secondary", false, "sm")}>
-        명단으로
+      <Link href={from === null ? "/" : eventHref(from)} className={buttonClass("secondary", false, "sm")}>
+        {from === null ? "처음으로" : "명단으로"}
       </Link>
 
       <h1 className="mt-4 text-2xl">24가지 강점</h1>
@@ -36,7 +46,7 @@ export default function StrengthsPage() {
       </p>
 
       <div className="mt-4">
-        <Link href="/strengths/all" className={buttonClass("secondary", false, "sm")}>
+        <Link href={strengthsHref(from, "/all")} className={buttonClass("secondary", false, "sm")}>
           전부 이어서 읽기
         </Link>
       </div>
@@ -50,7 +60,7 @@ export default function StrengthsPage() {
               {strengths.map((strength) => (
                 <li key={strength.code}>
                   <Link
-                    href={`/strengths/${strength.code}`}
+                    href={strengthsHref(from, `/${strength.code}`)}
                     className="block h-full rounded-base border border-line bg-surface p-3 sm:p-4"
                   >
                     <span className="font-display text-base">{strength.nameKo}</span>

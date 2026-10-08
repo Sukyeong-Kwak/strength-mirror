@@ -5,7 +5,7 @@
  * 건수는 여기서도 만들지 않고, 남긴 사람은 여기서도 익명이다.
  */
 
-import { getAppMode, type AppMode } from "@/lib/data/appState";
+import { getEventById } from "@/lib/data/events";
 import { getPerson, listPeople } from "@/lib/data/people";
 import {
   getAllGroupStrengthRatios,
@@ -28,12 +28,15 @@ import {
   type HiddenStrengths,
 } from "@/lib/insights";
 import type { StrengthCode } from "@/lib/strengths";
-import type { ReasonEntry, StrengthRatioRow } from "@/types/domain";
+import type { EventInfo, ReasonEntry, StrengthRatioRow } from "@/types/domain";
 
 export type ReportMatch = { name: string; groupLabel: string; strengths: StrengthCode[] };
 
+/** 리포트 머리에 적는 그룹 정보 */
+export type ReportEvent = { title: string; isSample: boolean };
+
 export type PersonReportData = {
-  mode: AppMode;
+  event: ReportEvent;
   name: string;
   groupLabel: string;
   rows: StrengthRatioRow[];
@@ -44,20 +47,23 @@ export type PersonReportData = {
   reasons: ReasonEntry[];
 };
 
-/** 한 사람의 리포트. 없거나 지금 화면에 없는 사람이면 null */
+/** 한 사람의 리포트. 없거나 숨긴 사람이면 null. 견주기는 그 사람의 그룹 안에서만 한다 */
 export async function getPersonReportData(personId: string): Promise<PersonReportData | null> {
   const person = await getPerson(personId);
   if (person === null) {
     return null;
   }
 
-  const [allRatios, overall, reasons, people, mode] = await Promise.all([
-    getAllPersonStrengthRatios(),
-    getOverallStrengthRatio(),
+  const [event, allRatios, overall, reasons, people] = await Promise.all([
+    getEventById(person.eventId),
+    getAllPersonStrengthRatios(person.eventId),
+    getOverallStrengthRatio(person.eventId),
     getPersonReasons(person.id),
-    listPeople(),
-    getAppMode(),
+    listPeople(person.eventId),
   ]);
+  if (event === null) {
+    return null;
+  }
   const rows = allRatios.get(person.id) ?? [];
 
   const byId = new Map(people.map((p) => [p.id, p]));
@@ -70,7 +76,7 @@ export async function getPersonReportData(personId: string): Promise<PersonRepor
   const similarRaw = similarPeople(person.id, allRatios, 2);
 
   return {
-    mode,
+    event: { title: event.title, isSample: event.isSample },
     name: person.name,
     groupLabel: toGroupLabel(person.groupName),
     rows,
@@ -92,7 +98,7 @@ export async function getPersonReportData(personId: string): Promise<PersonRepor
 }
 
 export type OverallReportData = {
-  mode: AppMode;
+  event: ReportEvent;
   overall: StrengthRatioRow[];
   profiles: GroupProfile[];
   /** 조마다 받은 강점 비율 — 화면의 조별 보기 */
@@ -102,20 +108,20 @@ export type OverallReportData = {
   people: Array<{ name: string; groupLabel: string; top: StrengthCode[] }>;
 };
 
-export async function getOverallReportData(): Promise<OverallReportData> {
-  const [people, overall, byGroup, allRatios, mode] = await Promise.all([
-    listPeople(),
-    getOverallStrengthRatio(),
-    getAllGroupStrengthRatios(),
-    getAllPersonStrengthRatios(),
-    getAppMode(),
+/** 한 그룹 전체의 리포트 */
+export async function getOverallReportData(event: EventInfo): Promise<OverallReportData> {
+  const [people, overall, byGroup, allRatios] = await Promise.all([
+    listPeople(event.id),
+    getOverallStrengthRatio(event.id),
+    getAllGroupStrengthRatios(event.id),
+    getAllPersonStrengthRatios(event.id),
   ]);
 
   // 조별 뷰는 미지정(null)을 묶지 않는다 (results 화면과 같은 규칙)
   const groups = collectGroupNames(people).filter((g) => g !== UNASSIGNED_GROUP_LABEL);
 
   return {
-    mode,
+    event: { title: event.title, isSample: event.isSample },
     overall,
     profiles: groupProfiles(
       new Map(groups.map((g) => [g, byGroup.get(g) ?? []])),

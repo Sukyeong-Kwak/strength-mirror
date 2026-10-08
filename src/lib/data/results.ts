@@ -3,6 +3,9 @@
  *
  * 로그인 없이 열리는 화면이라 `lib/auth/dal.ts` 를 쓰지 않는다 (`people.ts` 와 같은 이유).
  *
+ * 전체 · 조별 집계와 '모두와 견주기' 는 한 그룹 안에서만 한다.
+ * 다른 그룹의 강점이 섞이면 "우리에게 주신 강점" 이 우리 것이 아니게 된다.
+ *
  * 여기서 읽는 뷰는 전부 비율만 내려준다. 건수 컬럼이 애초에 없다.
  * 결과는 언제든 열려 있고, 남긴 사람의 이름은 어떤 뷰에도 없다.
  *
@@ -101,13 +104,14 @@ export async function getPersonReasons(personId: string): Promise<ReasonEntry[]>
   return out;
 }
 
-/** 전체 강점 비율 */
-export async function getOverallStrengthRatio(): Promise<StrengthRatioRow[]> {
+/** 그룹 전체 강점 비율 */
+export async function getOverallStrengthRatio(eventId: string): Promise<StrengthRatioRow[]> {
   const supabase = await createSupabaseServerClient();
 
   const { data, error } = await supabase
     .from("overall_strength_ratio")
-    .select("strength_code, name_ko, virtue, ratio");
+    .select("strength_code, name_ko, virtue, ratio")
+    .eq("event_id", eventId);
 
   if (error) {
     throw new Error("전체 집계를 불러오지 못했어요");
@@ -119,6 +123,7 @@ export async function getOverallStrengthRatio(): Promise<StrengthRatioRow[]> {
 
 /** 조별 강점 비율. 조 이름과 함께 내려준다 */
 export async function getGroupStrengthRatio(
+  eventId: string,
   groupName: string,
 ): Promise<StrengthRatioRow[]> {
   const supabase = await createSupabaseServerClient();
@@ -126,6 +131,7 @@ export async function getGroupStrengthRatio(
   const { data, error } = await supabase
     .from("group_strength_ratio")
     .select("group_name, strength_code, name_ko, virtue, ratio")
+    .eq("event_id", eventId)
     .eq("group_name", groupName);
 
   if (error) {
@@ -177,20 +183,21 @@ async function fetchAllKeyed(
 }
 
 /**
- * 모든 사람이 받은 강점 비율. 사람 id → 비율 행.
+ * 그룹 안 모든 사람이 받은 강점 비율. 사람 id → 비율 행.
  *
  * "결이 비슷한 사람" 을 찾으려면 모두를 견줘봐야 한다.
  * 개인 결과와 같은 공개 뷰라서 새로 드러나는 것은 없다.
  */
-export async function getAllPersonStrengthRatios(): Promise<
-  Map<string, StrengthRatioRow[]>
-> {
+export async function getAllPersonStrengthRatios(
+  eventId: string,
+): Promise<Map<string, StrengthRatioRow[]>> {
   const supabase = await createSupabaseServerClient();
   return fetchAllKeyed(
     (from, to) =>
       supabase
         .from("person_strength_ratio")
         .select("key:person_id, strength_code, name_ko, virtue, ratio")
+        .eq("event_id", eventId)
         .order("person_id")
         .order("strength_code")
         .range(from, to),
@@ -198,16 +205,17 @@ export async function getAllPersonStrengthRatios(): Promise<
   );
 }
 
-/** 모든 조의 강점 비율. 조 이름 → 비율 행 */
-export async function getAllGroupStrengthRatios(): Promise<
-  Map<string, StrengthRatioRow[]>
-> {
+/** 그룹 안 모든 조의 강점 비율. 조 이름 → 비율 행 */
+export async function getAllGroupStrengthRatios(
+  eventId: string,
+): Promise<Map<string, StrengthRatioRow[]>> {
   const supabase = await createSupabaseServerClient();
   return fetchAllKeyed(
     (from, to) =>
       supabase
         .from("group_strength_ratio")
         .select("key:group_name, strength_code, name_ko, virtue, ratio")
+        .eq("event_id", eventId)
         .order("group_name")
         .order("strength_code")
         .range(from, to),

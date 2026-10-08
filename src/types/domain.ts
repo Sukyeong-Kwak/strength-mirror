@@ -70,9 +70,27 @@ export function pickChartView(
   return isChartView(raw) && allowed.includes(raw) ? raw : fallback;
 }
 
+/**
+ * 그룹(행사 · 회사). 그룹마다 참여 주소(/e/<slug>)와 명단 · 결과가 따로 있다.
+ * created_by 는 anon 에게 내려오지 않는다.
+ */
+export type EventInfo = {
+  id: string;
+  /** 주소에 들어가는 이름. 소문자 영문 · 숫자 · 하이픈 */
+  slug: string;
+  /** 행사 제목. 그룹 첫 화면과 리포트 머리에 쓴다 */
+  title: string;
+  /** 그룹 첫 화면 맨 위의 인사말. 없으면 기본 안내만 보인다 */
+  intro: string | null;
+  /** 설명용 예시 그룹인지 */
+  isSample: boolean;
+};
+
 /** 목록·카드에서 쓰는 사람 정보. created_by 는 anon 에게 내려오지 않는다 */
 export type Person = {
   id: string;
+  /** 소속 그룹 */
+  eventId: string;
   name: string;
   groupName: string | null;
   createdAt: string;
@@ -111,8 +129,6 @@ export type PersonTotals = {
    * 숨기면 목록·집계·결과에서 빠지지만 받은 글은 남는다.
    */
   hidden: boolean;
-  /** 설명용 예시 인물인지 */
-  isDemo: boolean;
 };
 
 /** 관리자 조별 합계 한 행 */
@@ -140,7 +156,10 @@ export const ADMIN_ACTIONS = [
   "edit_person",
   "seed_demo",
   "clear_demo",
+  /** 그룹이 생기기 전의 기록. 새로 남지 않지만 지난 활동에 보인다 */
   "set_mode",
+  "create_event",
+  "edit_event",
 ] as const;
 
 export type AdminAction = (typeof ADMIN_ACTIONS)[number];

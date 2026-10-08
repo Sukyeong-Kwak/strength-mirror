@@ -57,11 +57,12 @@ export default async function PersonResultPage({ params }: ResultPageProps) {
     notFound();
   }
 
+  // 견주기(유독 드러난 · 결이 비슷한)는 같은 그룹 안에서만 한다
   const [allRatios, overall, reasons, people] = await Promise.all([
-    getAllPersonStrengthRatios(),
-    getOverallStrengthRatio(),
+    getAllPersonStrengthRatios(person.eventId),
+    getOverallStrengthRatio(person.eventId),
     getPersonReasons(person.id),
-    listPeople(),
+    listPeople(person.eventId),
   ]);
   const strengthRows = allRatios.get(person.id) ?? [];
   const subject = `${person.name}님`;
@@ -117,7 +118,7 @@ export default async function PersonResultPage({ params }: ResultPageProps) {
       */}
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <ReportDownload personId={person.id} name={person.name} />
-        <MeToggle personId={person.id} />
+        <MeToggle eventId={person.eventId} personId={person.id} />
       </div>
       <p className="mt-2 text-sm text-muted">이 화면의 모든 내용을 PDF 파일로 간직할 수 있어요</p>
 
@@ -185,6 +186,7 @@ export default async function PersonResultPage({ params }: ResultPageProps) {
       )}
 
       <SentByMe
+        eventId={person.eventId}
         personId={person.id}
         people={people.map((p) => ({
           id: p.id,

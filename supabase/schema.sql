@@ -50,9 +50,40 @@ drop table if exists public.app_config;
 -- 2. 테이블
 -- ------------------------------------------------------------
 
+-- 그룹(행사·회사). 그룹마다 참여 주소(/e/<slug>)와 명단·결과가 따로 있다.
+-- 예시도 그룹 하나다(is_sample). 예시 그룹은 하나만 둔다.
+-- slug 는 주소에 그대로 들어가므로 소문자 영문·숫자·하이픈만 받는다
+create table if not exists public.events (
+  id          uuid primary key default gen_random_uuid(),
+  slug        text not null unique
+                check (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$' and char_length(slug) between 2 and 40),
+  title       text not null check (char_length(btrim(title)) between 1 and 40),
+  -- 그룹 첫 화면 맨 위에 보이는 인사말. 없으면 기본 안내만 보인다
+  intro       text null check (intro is null or char_length(btrim(intro)) between 1 and 300),
+  is_sample   boolean not null default false,
+  created_by  text null,
+  created_at  timestamptz not null default now()
+);
+
+create unique index if not exists events_one_sample on public.events (is_sample) where is_sample;
+
+-- 처음 그룹들. 표가 비어 있을 때 한 번만 넣는다.
+-- 관리자가 주소나 이름을 바꾼 뒤 이 파일을 다시 실행해도 되살아나지 않게 한다.
+-- 아래 people 이관이 leader-mt 와 예시 그룹을 찾는다
+insert into public.events (slug, title, is_sample)
+select v.slug, v.title, v.is_sample
+from (values
+  ('leader-mt', '청년부 리더 MT', false),
+  ('oikos',     '원띵 오이코스',  false),
+  ('demo',      '예시',           true)
+) as v(slug, title, is_sample)
+where not exists (select 1 from public.events);
+
 -- 피드백을 받는 대상자. 동명이인을 허용하므로 unique 제약을 두지 않는다
 create table if not exists public.people (
   id          uuid primary key default gen_random_uuid(),
+  -- 소속 그룹. 그룹을 지우면 그 명단과 받은 글도 함께 사라진다
+  event_id    uuid not null references public.events(id) on delete cascade,
   name        text not null check (char_length(btrim(name)) between 1 and 40),
   group_name  text null check (group_name is null or char_length(btrim(group_name)) between 1 and 40),
   created_by  text null,
@@ -66,21 +97,42 @@ create table if not exists public.people (
 -- 이미 만들어진 DB 에도 넣는다
 alter table public.people add column if not exists hidden_at timestamptz null;
 
--- 예시 인물인지. 설명하는 동안 보여줄 가상의 사람들이다.
--- 예시 모드에서는 예시만, 실제 모드에서는 실제 사람만 참여자 화면에 나온다
-alter table public.people add column if not exists is_demo boolean not null default false;
+alter table public.people
+  add column if not exists event_id uuid references public.events(id) on delete cascade;
 
--- 지금 참여자 화면이 예시를 보여주는지, 실제 참여를 보여주는지. 한 행만 있다.
--- 처음 값은 live 라서 이 기능을 쓰지 않으면 아무것도 달라지지 않는다.
--- 바꾸는 것은 관리자 전용 함수 set_app_mode() 로만 한다
-create table if not exists public.app_state (
-  id         boolean primary key default true check (id),
-  mode       text not null default 'live' check (mode in ('demo', 'live')),
-  updated_by text null,
-  updated_at timestamptz not null default now()
-);
 
-insert into public.app_state (id) values (true) on conflict (id) do nothing;
+-- ------------------------------------------------------------
+-- 2-1. 이전 버전 정리 — 예시/실제 스위치를 그룹으로 옮긴다
+--
+-- 전에는 사이트 전체에 스위치가 하나(app_state.mode)였고, 사람마다
+-- 예시 인물인지(is_demo)만 표시했다. 이제는 사람이 그룹에 속한다.
+--   예시 인물 → 예시 그룹
+--   실제 인물 → 청년부 리더 MT
+-- is_demo 가 없는 새 DB 에서는 이 블록이 아무것도 하지 않는다.
+-- ------------------------------------------------------------
+
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'people' and column_name = 'is_demo'
+  ) then
+    update public.people p
+    set event_id = e.id
+    from public.events e
+    where p.event_id is null
+      and ((p.is_demo and e.is_sample) or (not p.is_demo and e.slug = 'leader-mt'));
+  end if;
+end;
+$$;
+
+alter table public.people alter column event_id set not null;
+
+-- 스위치에 딸린 것들을 지운다. cascade 로 함께 지워지는 뷰는 아래 6장에서 다시 만든다
+alter table public.people drop column if exists is_demo cascade;
+drop function if exists public.set_app_mode(text);
+drop function if exists public.in_current_mode(boolean) cascade;
+drop table if exists public.app_state;
 
 -- VIA 24개 마스터. 화면 문구의 원본은 src/lib/strengths.ts 이고
 -- 여기 description 은 참고용이다 (문구 수정에 마이그레이션이 필요 없도록)
@@ -134,7 +186,8 @@ create table if not exists public.admin_audit_log (
                 action in ('login','import_people','exclude_feedback','restore_feedback',
                            'add_admin','remove_admin','hide_person','restore_person','delete_person',
              'add_person','edit_person',
-             'seed_demo','clear_demo','set_mode')
+             'seed_demo','clear_demo','set_mode',
+             'create_event','edit_event')
               ),
   detail      jsonb null,
   created_at  timestamptz not null default now()
@@ -148,7 +201,8 @@ alter table public.admin_audit_log add constraint admin_audit_log_action_allowed
   action in ('login','import_people','exclude_feedback','restore_feedback',
              'add_admin','remove_admin','hide_person','restore_person','delete_person',
              'add_person','edit_person',
-             'seed_demo','clear_demo','set_mode')
+             'seed_demo','clear_demo','set_mode',
+             'create_event','edit_event')
 );
 
 
@@ -158,6 +212,9 @@ alter table public.admin_audit_log add constraint admin_audit_log_action_allowed
 
 create index if not exists people_group_name_idx
   on public.people (group_name);
+
+create index if not exists people_event_idx
+  on public.people (event_id);
 
 create index if not exists feedbacks_person_idx
   on public.feedbacks (person_id);
@@ -214,23 +271,6 @@ end;
 $$;
 
 
--- 이 사람이 지금 참여자 화면에 나올 차례인지.
--- 예시 모드면 예시 인물만, 실제 모드면 실제 인물만 true.
--- 뷰와 제출 함수가 같은 판정을 쓰도록 한 곳에 둔다
-create or replace function public.in_current_mode(p_is_demo boolean)
-returns boolean
-language sql
-security definer
-stable
-set search_path = ''
-as $$
-  select coalesce(p_is_demo, false) = coalesce(
-    (select mode = 'demo' from public.app_state where id),
-    false
-  );
-$$;
-
-
 -- ------------------------------------------------------------
 -- 5. 결과 공개 게이트 — 없앴다
 --
@@ -268,11 +308,13 @@ drop view if exists public.group_strength_ratio cascade;
 drop view if exists public.group_virtue_ratio cascade;
 drop view if exists public.feedback_reasons_public cascade;
 
--- (내부 전용) 제외되지 않은 제출의 강점 항목. 다른 뷰들의 공통 재료
+-- (내부 전용) 제외되지 않은 제출의 강점 항목. 다른 뷰들의 공통 재료.
+-- 그룹(event_id)을 실어 둔다. 전체·조별 집계는 그룹 안에서만 센다
 create view public.feedback_items_active as
 select
   f.id                                    as feedback_id,
   f.person_id,
+  p.event_id,
   coalesce(p.group_name, '미지정')        as group_name,
   i.id                                    as item_id,
   i.strength_code,
@@ -282,8 +324,7 @@ from public.feedbacks f
 join public.people p         on p.id = f.person_id
 join public.feedback_items i on i.feedback_id = f.id
 where f.excluded_at is null
-  and p.hidden_at is null
-  and public.in_current_mode(p.is_demo);
+  and p.hidden_at is null;
 
 -- (관리자 전용) 수신 현황. 관리자는 누가 몇 개를 받았는지 모두 볼 수 있다
 create view public.person_totals_internal as
@@ -291,13 +332,12 @@ select t.*
 from (
   select
     p.id                                   as person_id,
+    p.event_id,
     p.name,
     coalesce(p.group_name, '미지정')       as group_name,
     p.created_by,
     -- 숨긴 사람도 돌려준다. 관리자가 보고 되돌릴 수 있어야 한다
     p.hidden_at,
-    -- 예시 인물도 돌려준다. 화면이 '예시' 로 표시하고 현황에서는 지금 모드만 센다
-    p.is_demo,
     count(distinct f.id)::int              as submission_count,
     count(i.id)::int                       as strength_count
   from public.people p
@@ -305,7 +345,7 @@ from (
     on f.person_id = p.id and f.excluded_at is null
   left join public.feedback_items i
     on i.feedback_id = f.id
-  group by p.id, p.name, p.group_name, p.created_by, p.hidden_at, p.is_demo
+  group by p.id, p.event_id, p.name, p.group_name, p.created_by, p.hidden_at
 ) t
 where public.assert_admin();
 
@@ -314,6 +354,7 @@ create view public.group_totals_internal as
 select t.*
 from (
   select
+    p.event_id,
     coalesce(p.group_name, '미지정')       as group_name,
     count(distinct p.id)::int              as person_count,
     count(i.id)::int                       as strength_count
@@ -323,8 +364,7 @@ from (
   left join public.feedback_items i
     on i.feedback_id = f.id
   where p.hidden_at is null
-    and public.in_current_mode(p.is_demo)
-  group by coalesce(p.group_name, '미지정')
+  group by p.event_id, coalesce(p.group_name, '미지정')
 ) t
 where public.assert_admin();
 
@@ -380,12 +420,14 @@ ranked as (
 )
 select
   r.person_id,
+  p.event_id,
   r.strength_code,
   s.name_ko,
   s.virtue,
   (r.base_units + case when r.rn <= r.leftover then 1 else 0 end) * 5 as ratio
 from ranked r
-join public.strengths s on s.code = r.strength_code;
+join public.strengths s on s.code = r.strength_code
+join public.people p    on p.id = r.person_id;
 
 -- 개인 · 덕목별 비율
 create view public.person_virtue_ratio as
@@ -423,32 +465,35 @@ select
   (base_units + case when rn <= leftover then 1 else 0 end) * 5 as ratio
 from ranked;
 
--- 전체 · 강점별 비율
+-- 그룹 전체 · 강점별 비율. 그룹마다 따로 센다
 create view public.overall_strength_ratio as
 with base as (
-  select strength_code, count(*)::numeric as c
+  select event_id, strength_code, count(*)::numeric as c
   from public.feedback_items_active
-  group by strength_code
+  group by event_id, strength_code
 ),
 tot as (
-  select sum(c) as total from base
+  select event_id, sum(c) as total from base group by event_id
 ),
 frac as (
   select
+    b.event_id,
     b.strength_code,
     floor(20.0 * b.c / t.total)::int                     as base_units,
     20.0 * b.c / t.total - floor(20.0 * b.c / t.total)   as rem
-  from base b cross join tot t
+  from base b join tot t on t.event_id = b.event_id
 ),
 ranked as (
   select
+    event_id,
     strength_code,
     base_units,
-    row_number() over (order by rem desc, strength_code) as rn,
-    20 - sum(base_units) over ()                         as leftover
+    row_number() over (partition by event_id order by rem desc, strength_code) as rn,
+    20 - sum(base_units) over (partition by event_id)                          as leftover
   from frac
 )
 select
+  r.event_id,
   r.strength_code,
   s.name_ko,
   s.virtue,
@@ -456,67 +501,74 @@ select
 from ranked r
 join public.strengths s on s.code = r.strength_code;
 
--- 전체 · 덕목별 비율
+-- 그룹 전체 · 덕목별 비율
 create view public.overall_virtue_ratio as
 with base as (
-  select s.virtue
+  select a.event_id, s.virtue
   from public.feedback_items_active a
   join public.strengths s on s.code = a.strength_code
 ),
 cnt as (
-  select virtue, count(*)::numeric as c from base group by virtue
+  select event_id, virtue, count(*)::numeric as c from base group by event_id, virtue
 ),
 tot as (
-  select sum(c) as total from cnt
+  select event_id, sum(c) as total from cnt group by event_id
 ),
 frac as (
   select
+    c.event_id,
     c.virtue,
     floor(20.0 * c.c / t.total)::int                    as base_units,
     20.0 * c.c / t.total - floor(20.0 * c.c / t.total)  as rem
-  from cnt c cross join tot t
+  from cnt c join tot t on t.event_id = c.event_id
 ),
 ranked as (
   select
+    event_id,
     virtue,
     base_units,
-    row_number() over (order by rem desc, virtue) as rn,
-    20 - sum(base_units) over ()                  as leftover
+    row_number() over (partition by event_id order by rem desc, virtue) as rn,
+    20 - sum(base_units) over (partition by event_id)                   as leftover
   from frac
 )
 select
+  event_id,
   virtue,
   (base_units + case when rn <= leftover then 1 else 0 end) * 5 as ratio
 from ranked;
 
--- 조 · 강점별 비율
+-- 조 · 강점별 비율. 조 이름은 그룹마다 겹칠 수 있으므로 (그룹, 조) 로 묶는다
 create view public.group_strength_ratio as
 with base as (
-  select group_name, strength_code, count(*)::numeric as c
+  select event_id, group_name, strength_code, count(*)::numeric as c
   from public.feedback_items_active
-  group by group_name, strength_code
+  group by event_id, group_name, strength_code
 ),
 tot as (
-  select group_name, sum(c) as total from base group by group_name
+  select event_id, group_name, sum(c) as total from base group by event_id, group_name
 ),
 frac as (
   select
+    b.event_id,
     b.group_name,
     b.strength_code,
     floor(20.0 * b.c / t.total)::int                     as base_units,
     20.0 * b.c / t.total - floor(20.0 * b.c / t.total)   as rem
-  from base b join tot t on t.group_name = b.group_name
+  from base b
+  join tot t on t.event_id = b.event_id and t.group_name = b.group_name
 ),
 ranked as (
   select
+    event_id,
     group_name,
     strength_code,
     base_units,
-    row_number() over (partition by group_name order by rem desc, strength_code) as rn,
-    20 - sum(base_units) over (partition by group_name)                          as leftover
+    row_number() over (partition by event_id, group_name order by rem desc, strength_code) as rn,
+    20 - sum(base_units) over (partition by event_id, group_name)                          as leftover
   from frac
 )
 select
+  r.event_id,
   r.group_name,
   r.strength_code,
   s.name_ko,
@@ -528,34 +580,39 @@ join public.strengths s on s.code = r.strength_code;
 -- 조 · 덕목별 비율
 create view public.group_virtue_ratio as
 with base as (
-  select a.group_name, s.virtue
+  select a.event_id, a.group_name, s.virtue
   from public.feedback_items_active a
   join public.strengths s on s.code = a.strength_code
 ),
 cnt as (
-  select group_name, virtue, count(*)::numeric as c from base group by group_name, virtue
+  select event_id, group_name, virtue, count(*)::numeric as c
+  from base group by event_id, group_name, virtue
 ),
 tot as (
-  select group_name, sum(c) as total from cnt group by group_name
+  select event_id, group_name, sum(c) as total from cnt group by event_id, group_name
 ),
 frac as (
   select
+    c.event_id,
     c.group_name,
     c.virtue,
     floor(20.0 * c.c / t.total)::int                    as base_units,
     20.0 * c.c / t.total - floor(20.0 * c.c / t.total)  as rem
-  from cnt c join tot t on t.group_name = c.group_name
+  from cnt c
+  join tot t on t.event_id = c.event_id and t.group_name = c.group_name
 ),
 ranked as (
   select
+    event_id,
     group_name,
     virtue,
     base_units,
-    row_number() over (partition by group_name order by rem desc, virtue) as rn,
-    20 - sum(base_units) over (partition by group_name)                   as leftover
+    row_number() over (partition by event_id, group_name order by rem desc, virtue) as rn,
+    20 - sum(base_units) over (partition by event_id, group_name)                   as leftover
   from frac
 )
 select
+  event_id,
   group_name,
   virtue,
   (base_units + case when rn <= leftover then 1 else 0 end) * 5 as ratio
@@ -589,7 +646,7 @@ revoke all on all sequences in schema public from anon, authenticated;
 --   홈 화면이 숨긴 사람을 빼려면 그 컬럼을 읽어야 하는데, 컬럼 단위 권한에서
 --   빠지면 select 전체가 42501(permission denied) 로 거절된다.
 --   컬럼을 하나 더할 때마다 이 줄을 같이 고쳐야 한다는 뜻이다
-grant select (id, name, group_name, hidden_at, is_demo, created_at) on public.people to anon, authenticated;
+grant select (id, event_id, name, group_name, hidden_at, created_at) on public.people to anon, authenticated;
 grant insert                                              on public.people to authenticated;
 
 -- 숨기기·되돌리기·이름과 조 고치기·삭제 (관리자 전용).
@@ -606,8 +663,12 @@ grant delete             on public.people to authenticated;
 -- strengths : 누구나 읽기
 grant select on public.strengths to anon, authenticated;
 
--- app_state : 누구나 읽기. 바꾸기는 set_app_mode() 로만
-grant select on public.app_state to anon, authenticated;
+-- events : 주소로 그룹을 찾아야 하므로 누구나 읽는다.
+-- created_by 는 관리자 이메일이라 열지 않는다.
+-- 만들기와 고치기는 관리자만(RLS). 지우기는 명단과 받은 글이 통째로 사라지므로 열지 않는다
+grant select (id, slug, title, intro, is_sample, created_at) on public.events to anon, authenticated;
+grant insert                                                on public.events to authenticated;
+grant update (slug, title, intro)                           on public.events to authenticated;
 
 -- feedbacks / feedback_items : anon 접근 없음. 삽입은 RPC 로만.
 -- 관리자 UPDATE 는 컬럼 단위로 excluded_at 만 연다
@@ -643,9 +704,6 @@ revoke all on function public.assert_admin()      from public, anon, authenticat
 grant execute on function public.is_admin()          to authenticated;
 grant execute on function public.assert_admin()      to authenticated;
 
--- 공개 뷰가 부른다. 뷰 안의 함수는 뷰를 읽는 쪽의 권한으로 실행되므로 anon 에게도 연다
-revoke all on function public.in_current_mode(boolean) from public, anon, authenticated;
-grant execute on function public.in_current_mode(boolean) to anon, authenticated;
 
 
 -- ------------------------------------------------------------
@@ -661,11 +719,28 @@ alter table public.feedbacks       enable row level security;
 alter table public.feedback_items  enable row level security;
 alter table public.admin_allowlist enable row level security;
 alter table public.admin_audit_log enable row level security;
-alter table public.app_state       enable row level security;
+alter table public.events          enable row level security;
 
-drop policy if exists app_state_select_all     on public.app_state;
-create policy app_state_select_all on public.app_state
+drop policy if exists events_select_all        on public.events;
+drop policy if exists events_insert_admin      on public.events;
+drop policy if exists events_update_admin      on public.events;
+
+-- events : 누구나 읽기. 만들기·고치기는 관리자만. 예시 그룹은 화면에서 만들지 않는다
+create policy events_select_all on public.events
   for select to anon, authenticated using (true);
+
+create policy events_insert_admin on public.events
+  for insert to authenticated
+  with check (
+    public.is_admin()
+    and not is_sample
+    and (created_by is null or created_by = lower(auth.jwt() ->> 'email'))
+  );
+
+create policy events_update_admin on public.events
+  for update to authenticated
+  using (public.is_admin())
+  with check (public.is_admin());
 
 drop policy if exists people_select_all        on public.people;
 drop policy if exists people_insert_admin      on public.people;
@@ -839,13 +914,12 @@ begin
     raise exception 'items must not repeat the same strength';
   end if;
 
-  -- 숨긴 사람, 지금 모드가 아닌 사람에게는 남길 수 없다.
+  -- 숨긴 사람에게는 남길 수 없다.
   -- 이 함수는 security definer 라 RLS 를 지나치므로 여기서 막는다
   if not exists (
     select 1 from public.people
     where id = p_person_id
       and hidden_at is null
-      and public.in_current_mode(is_demo)
   ) then
     raise exception 'person not available';
   end if;
@@ -910,16 +984,15 @@ grant execute on function public.submit_feedback(uuid, text, uuid, jsonb)
 
 
 -- ------------------------------------------------------------
--- 9-1. 예시 데이터와 모드 전환 (관리자 전용)
+-- 9-1. 예시 데이터 (관리자 전용)
 --
--- 설명하는 동안에는 가상의 사람들로 채운 예시를 보여주고,
--- 진행자가 버튼 하나로 실제 참여자 화면으로 바꾼다.
+-- 설명하는 동안에는 가상의 사람들로 채운 예시 그룹(/e/demo 같은 주소)을 보여준다.
+-- 예시 그룹은 events.is_sample 이 true 인 그룹 하나다.
 --
 --   seed_demo()      예시를 (다시) 채운다. 있던 예시와 그 위에 남긴 연습 기록은 지운다
 --   clear_demo()     예시를 모두 지운다
---   set_app_mode()   'demo' · 'live' 로 바꾼다
 --
--- 세 함수 모두 security definer 다. feedbacks 에는 직접 넣는 권한이 없어서
+-- 두 함수 모두 security definer 다. feedbacks 에는 직접 넣는 권한이 없어서
 -- 예시 제출을 만들려면 소유자 권한이 필요하다. 그래서 첫 줄에서 관리자인지 본다.
 -- 활동 기록도 함수 안에서 남긴다. 화면에서 따로 남기면 실패했을 때 기록만 빠진다.
 -- ------------------------------------------------------------
@@ -932,6 +1005,7 @@ set search_path = ''
 as $$
 declare
   v_admin   text := lower(auth.jwt() ->> 'email');
+  v_event   uuid;
   v_person  uuid;
   v_fb      uuid;
   v_reason  text;
@@ -944,24 +1018,34 @@ begin
     raise exception 'admin only' using errcode = '42501';
   end if;
 
+  select id into v_event from public.events where is_sample;
+  if v_event is null then
+    raise exception 'sample event missing';
+  end if;
+
   -- 다시 채우면 처음 상태로 돌아간다. 연습 삼아 남긴 것도 cascade 로 함께 지워진다
-  delete from public.people where is_demo;
+  delete from public.people where event_id = v_event;
 
   for r in
     select * from (values
-      ('곽수경', '원띵', array['creativity','creativity','creativity','curiosity','curiosity','love_of_learning','perspective']),
-      ('김수나', '원띵', array['kindness','kindness','kindness','love','love','gratitude','social_intelligence']),
-      ('노은주', '원띵', array['perseverance','perseverance','prudence','prudence','self_regulation','honesty','humility']),
-      ('신선한', '원띵', array['humor','humor','humor','zest','zest','hope','teamwork']),
-      ('조용운', '원띵', array['leadership','leadership','fairness','fairness','judgment','bravery','teamwork']),
-      ('최유라', '원띵', array['appreciation_of_beauty','appreciation_of_beauty','gratitude','gratitude','hope','spirituality','kindness']),
-      ('정승민', '원띵', array['spirituality','spirituality','forgiveness','forgiveness','humility','social_intelligence'])
+      ('김하늘', 'A조', array['kindness','kindness','kindness','gratitude','gratitude','love','humor']),
+      ('이도윤', 'A조', array['creativity','creativity','creativity','curiosity','curiosity','humor','zest']),
+      ('박서연', 'A조', array['leadership','leadership','fairness','fairness','judgment','perseverance','honesty']),
+      ('최민준', 'A조', array['prudence','prudence','self_regulation','self_regulation','humility','perseverance']),
+      ('정유진', 'B조', array['kindness','kindness','social_intelligence','social_intelligence','love','gratitude','teamwork']),
+      ('강지후', 'B조', array['bravery','bravery','bravery','honesty','honesty','zest','leadership']),
+      ('윤수아', 'B조', array['love_of_learning','love_of_learning','curiosity','curiosity','perspective','judgment']),
+      ('장현우', 'B조', array['humor','humor','humor','zest','zest','hope','teamwork']),
+      ('한예린', 'C조', array['gratitude','gratitude','gratitude','hope','hope','appreciation_of_beauty','kindness']),
+      ('오준서', 'C조', array['teamwork','teamwork','teamwork','fairness','kindness','perseverance']),
+      ('서지아', 'C조', array['perspective','perspective','judgment','judgment','humility','humility']),
+      ('임태윤', 'C조', array['creativity','creativity','appreciation_of_beauty','appreciation_of_beauty','curiosity','humor'])
     ) as t(name, grp, codes)
   loop
     v_index := v_index + 1;
 
-    insert into public.people (name, group_name, is_demo, created_by)
-    values (r.name, r.grp, true, v_admin)
+    insert into public.people (event_id, name, group_name, created_by)
+    values (v_event, r.name, r.grp, v_admin)
     returning id into v_person;
 
     for i in 1 .. array_length(r.codes, 1) loop
@@ -1057,7 +1141,8 @@ begin
     raise exception 'admin only' using errcode = '42501';
   end if;
 
-  delete from public.people where is_demo;
+  delete from public.people
+  where event_id = (select id from public.events where is_sample);
   get diagnostics v_removed = row_count;
 
   insert into public.admin_audit_log (admin_email, action, detail)
@@ -1067,43 +1152,11 @@ begin
 end;
 $$;
 
-create or replace function public.set_app_mode(p_mode text)
-returns text
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  v_admin text := lower(auth.jwt() ->> 'email');
-begin
-  if not public.is_admin() then
-    raise exception 'admin only' using errcode = '42501';
-  end if;
-  if p_mode is null or p_mode not in ('demo', 'live') then
-    raise exception 'mode must be demo or live';
-  end if;
-
-  insert into public.app_state (id, mode, updated_by, updated_at)
-  values (true, p_mode, v_admin, now())
-  on conflict (id) do update
-    set mode = excluded.mode,
-        updated_by = excluded.updated_by,
-        updated_at = excluded.updated_at;
-
-  insert into public.admin_audit_log (admin_email, action, detail)
-  values (v_admin, 'set_mode', jsonb_build_object('mode', p_mode));
-
-  return p_mode;
-end;
-$$;
-
 revoke all on function public.seed_demo()          from public, anon, authenticated;
 revoke all on function public.clear_demo()         from public, anon, authenticated;
-revoke all on function public.set_app_mode(text)   from public, anon, authenticated;
 
 grant execute on function public.seed_demo()        to authenticated;
 grant execute on function public.clear_demo()       to authenticated;
-grant execute on function public.set_app_mode(text) to authenticated;
 
 
 -- ------------------------------------------------------------

@@ -1,8 +1,8 @@
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 
 import { RECENT_ACTIVITY_LIMIT } from "@/lib/constants";
-import { getAppMode, inMode } from "@/lib/data/appState";
+import { getEventBySlug } from "@/lib/data/events";
 import { readPeopleRows } from "@/lib/data/people";
 import { toGroupLabel } from "@/lib/groups";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -11,6 +11,7 @@ import {
   isAdminAction,
   type AdminActivity,
   type AdminEntry,
+  type EventInfo,
   type PersonTotals,
 } from "@/types/domain";
 
@@ -48,6 +49,21 @@ export const requireAdmin = cache(async (): Promise<AdminSession> => {
 });
 
 /**
+ * 관리자 확인 + 주소로 그룹 찾기. 없는 그룹이면 404.
+ * 그룹 관리 화면(/admin/e/<slug>/...)이 맨 먼저 부른다.
+ */
+export async function requireAdminEvent(
+  slug: string,
+): Promise<{ session: AdminSession; event: EventInfo }> {
+  const session = await requireAdmin();
+  const event = await getEventBySlug(slug);
+  if (event === null) {
+    notFound();
+  }
+  return { session, event };
+}
+
+/**
  * 뷰는 모든 컬럼이 nullable 로 생성된다. 화면용 타입으로 좁힌다.
  * 사람을 식별할 수 없는 행은 버린다.
  */
@@ -57,8 +73,6 @@ type PersonTotalsRow = {
   group_name: string | null;
   created_by: string | null;
   hidden_at: string | null;
-  /** 이번 스키마 변경으로 생긴 칸. 재실행 전에는 오지 않는다 */
-  is_demo?: boolean | null;
   submission_count: number | null;
   strength_count: number | null;
 };
@@ -75,12 +89,11 @@ function toPersonTotals(row: PersonTotalsRow): PersonTotals | null {
     submissionCount: row.submission_count ?? 0,
     strengthCount: row.strength_count ?? 0,
     hidden: row.hidden_at !== null,
-    isDemo: row.is_demo === true,
   };
 }
 
 /**
- * 수신 현황.
+ * 한 그룹의 수신 현황.
  *
  * person_totals_internal 은 is_admin() 인 사용자에게만 열려 있다.
  * 정렬을 지정하지 않으면 행 순서가 매번 달라져 화면이 흔들린다.
@@ -90,21 +103,16 @@ function toPersonTotals(row: PersonTotalsRow): PersonTotals | null {
  *   현황·집계에 쓸 때는 부르는 쪽에서 걸러야 한다.
  *   DB 의 집계 뷰는 숨긴 사람을 빼고 세므로, 넣으면 화면과 어긋난다.
  */
-export async function getReceiptTotals(): Promise<PersonTotals[]> {
+export async function getReceiptTotals(eventId: string): Promise<PersonTotals[]> {
   await requireAdmin();
   const supabase = await createSupabaseServerClient();
 
-  // hidden_at 은 이번 스키마 변경으로 생겼다.
-  // types/database.ts 는 생성물이라, 스키마를 재실행하고 npm run gen:types 를
-  // 돌리기 전까지는 이 컬럼을 모른다. 그때가 되면 overrideTypes 를 지워도 된다
   const { data, error } = await supabase
     .from("person_totals_internal")
-    // 칸을 하나씩 고르지 않는다. is_demo 는 스키마를 다시 실행해야 생기는데,
-    // 없는 칸을 고르면 조회 전체가 실패한다. 뷰라서 * 로 읽어도 내보내는 것은 같다
-    .select("*")
+    .select("person_id, name, group_name, created_by, hidden_at, submission_count, strength_count")
+    .eq("event_id", eventId)
     .order("group_name", { ascending: true })
-    .order("name", { ascending: true })
-    .overrideTypes<PersonTotalsRow[], { merge: false }>();
+    .order("name", { ascending: true });
 
   // 빈 배열로 넘기면 "등록 인원 0명" 이라는 정반대 화면이 된다.
   // 조회 실패는 삼키지 않고 에러 바운더리로 보낸다
@@ -118,26 +126,50 @@ export async function getReceiptTotals(): Promise<PersonTotals[]> {
 }
 
 /**
+ * 그룹마다 참여 인원(숨긴 사람 제외). 그룹 id → 인원. 관리자 홈의 그룹 목록이 쓴다.
+ */
+export async function getEventPeopleCounts(): Promise<Map<string, number>> {
+  await requireAdmin();
+  const supabase = await createSupabaseServerClient();
+
+  const { data, error } = await supabase
+    .from("person_totals_internal")
+    .select("event_id, hidden_at");
+
+  // 0명으로 넘기면 "아직 명단이 없어요" 라는 틀린 말을 하게 된다
+  if (error) {
+    throw new Error("그룹 인원을 불러오지 못했어요");
+  }
+
+  const counts = new Map<string, number>();
+  for (const row of data ?? []) {
+    if (row.event_id === null || row.hidden_at !== null) {
+      continue;
+    }
+    counts.set(row.event_id, (counts.get(row.event_id) ?? 0) + 1);
+  }
+  return counts;
+}
+
+/**
  * 중복 판정에 쓸 기존 인원. 이름과 조만 가져온다.
  *
  * 명단 등록 미리보기가 "이미 있음" 을 표시하는 데 쓴다.
  * 화면을 연 시점의 명단이므로 판단은 여기서 끝나지 않는다.
  * 그사이 다른 관리자가 등록했을 수 있어서, 실제 insert 직전에 서버가 다시 본다.
  */
-export async function getPeopleForDedupe(): Promise<
-  Array<{ name: string; groupName: string | null }>
-> {
+export async function getPeopleForDedupe(
+  eventId: string,
+): Promise<Array<{ name: string; groupName: string | null }>> {
   await requireAdmin();
 
-  // 등록은 지금 모드 쪽으로 들어가므로 "이미 있음" 도 같은 쪽만 본다
-  const [rows, mode] = await Promise.all([readPeopleRows(), getAppMode()]);
+  // 등록은 이 그룹으로 들어가므로 "이미 있음" 도 이 그룹 안에서만 본다
+  const rows = await readPeopleRows(eventId);
 
-  return rows
-    .filter((row) => inMode(row.is_demo ?? false, mode))
-    .map((row) => ({
-      name: row.name,
-      groupName: row.group_name,
-    }));
+  return rows.map((row) => ({
+    name: row.name,
+    groupName: row.group_name,
+  }));
 }
 
 /** 최근 활동. action 은 CHECK 제약이라 생성 타입이 string 이다. 아는 값만 통과시킨다 */

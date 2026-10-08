@@ -162,29 +162,73 @@ export type Database = {
           },
         ]
       }
+      events: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          intro: string | null
+          is_sample: boolean
+          slug: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          intro?: string | null
+          is_sample?: boolean
+          slug: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          intro?: string | null
+          is_sample?: boolean
+          slug?: string
+          title?: string
+        }
+        Relationships: []
+      }
       people: {
         Row: {
           created_at: string
           created_by: string | null
+          event_id: string
           group_name: string | null
+          hidden_at: string | null
           id: string
           name: string
         }
         Insert: {
           created_at?: string
           created_by?: string | null
+          event_id: string
           group_name?: string | null
+          hidden_at?: string | null
           id?: string
           name: string
         }
         Update: {
           created_at?: string
           created_by?: string | null
+          event_id?: string
           group_name?: string | null
+          hidden_at?: string | null
           id?: string
           name?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "people_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       strengths: {
         Row: {
@@ -219,6 +263,7 @@ export type Database = {
         Row: {
           author_name: string | null
           created_at: string | null
+          event_id: string | null
           feedback_id: string | null
           group_name: string | null
           item_id: string | null
@@ -284,6 +329,7 @@ export type Database = {
       }
       group_strength_ratio: {
         Row: {
+          event_id: string | null
           group_name: string | null
           name_ko: string | null
           ratio: number | null
@@ -302,6 +348,7 @@ export type Database = {
       }
       group_totals_internal: {
         Row: {
+          event_id: string | null
           group_name: string | null
           person_count: number | null
           strength_count: number | null
@@ -310,6 +357,7 @@ export type Database = {
       }
       group_virtue_ratio: {
         Row: {
+          event_id: string | null
           group_name: string | null
           ratio: number | null
           virtue: string | null
@@ -318,6 +366,7 @@ export type Database = {
       }
       overall_strength_ratio: {
         Row: {
+          event_id: string | null
           name_ko: string | null
           ratio: number | null
           strength_code: string | null
@@ -335,6 +384,7 @@ export type Database = {
       }
       overall_virtue_ratio: {
         Row: {
+          event_id: string | null
           ratio: number | null
           virtue: string | null
         }
@@ -342,6 +392,7 @@ export type Database = {
       }
       person_strength_ratio: {
         Row: {
+          event_id: string | null
           name_ko: string | null
           person_id: string | null
           ratio: number | null
@@ -375,7 +426,9 @@ export type Database = {
       person_totals_internal: {
         Row: {
           created_by: string | null
+          event_id: string | null
           group_name: string | null
+          hidden_at: string | null
           name: string | null
           person_id: string | null
           strength_count: number | null

@@ -48,8 +48,8 @@ export function PersonReport({ data }: { data: PersonReportData }) {
       <Page size="A4" style={s.page}>
         {/* 쪽마다 고정. 본문보다 앞에 둬야 모든 쪽에 그려진다 */}
         <Footer label={`${data.name} · 강점 발굴`} />
-        {data.mode === "demo" && <DemoNote />}
-        <Text style={s.brand}>강점 발굴 · {todayLabel()}</Text>
+        {data.event.isSample && <DemoNote />}
+        <Text style={s.brand}>{data.event.title} · {todayLabel()}</Text>
         <Text style={s.title}>{subject}의 강점</Text>
         <Text style={s.subtitle}>
           {data.groupLabel} · 곁에 있는 사람들이 발견한, 하나님께서 {subject}에게 주신 강점

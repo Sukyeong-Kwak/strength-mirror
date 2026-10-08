@@ -26,6 +26,8 @@ const ACTION_LABEL: Record<AdminAction, string> = {
   seed_demo: "예시 데이터 채움",
   clear_demo: "예시 데이터 지움",
   set_mode: "화면 전환",
+  create_event: "그룹 만듦",
+  edit_event: "그룹 수정",
 };
 
 /** detail 은 jsonb 라 무엇이든 올 수 있다. 좁혀서 쓴다 */
@@ -58,7 +60,11 @@ function describe(entry: AdminActivity): string {
 
   const count = readCount(entry.detail);
   if (count !== null) {
-    return `${count}명 ${base}`;
+    // 어느 그룹에 등록했는지. 그룹이 생기기 전의 기록에는 없다
+    const event = readField(entry.detail, "event");
+    return typeof event === "string" && event !== ""
+      ? `${event}에 ${count}명 ${base}`
+      : `${count}명 ${base}`;
   }
 
   // 사람을 숨기거나 지운 기록은 누구였는지가 핵심이다

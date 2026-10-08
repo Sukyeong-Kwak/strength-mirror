@@ -16,6 +16,8 @@ import {
 type ExistingPerson = { name: string; groupName: string | null };
 
 type PeopleImportPanelProps = {
+  /** 등록할 그룹 */
+  eventId: string;
   /** 화면을 연 시점의 명단. "이미 있음" 표시에만 쓴다 */
   existing: readonly ExistingPerson[];
 };
@@ -51,7 +53,7 @@ const PLACEHOLDER = `1조
 최민수
 정하나`;
 
-export function PeopleImportPanel({ existing }: PeopleImportPanelProps) {
+export function PeopleImportPanel({ eventId, existing }: PeopleImportPanelProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [text, setText] = useState("");
@@ -127,6 +129,7 @@ export function PeopleImportPanel({ existing }: PeopleImportPanelProps) {
     startTransition(async () => {
       try {
         const result = await importPeople({
+          eventId,
           people: selected.map((person) => ({
             name: nameOf(person),
             groupName: person.groupName,

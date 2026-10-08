@@ -5,10 +5,12 @@ import {
   hasSubmitted,
   newSubmissionKey,
   parseDrafts,
+  parseMeMap,
   parseSubmissions,
   submittedCodesFor,
   submittedPersonIds,
   withDraft,
+  withMe,
 } from "./submitted";
 
 import type { MySubmission } from "@/types/domain";
@@ -142,5 +144,35 @@ describe("parseSubmissions — 사유", () => {
 
   it("사유가 글자가 아니면 그 줄은 버린다", () => {
     expect(parseSubmissions(JSON.stringify([{ ...base, reason: 3 }]))).toEqual([]);
+  });
+});
+
+describe("parseMeMap", () => {
+  it("그룹마다 골라둔 사람을 읽는다", () => {
+    expect(parseMeMap(JSON.stringify({ e1: A, e2: B }))).toEqual({ e1: A, e2: B });
+  });
+
+  it("비었거나 깨졌거나 예전 모양(사람 id 하나)이면 빈 칸으로 본다", () => {
+    expect(parseMeMap(null)).toEqual({});
+    expect(parseMeMap("{")).toEqual({});
+    expect(parseMeMap(A)).toEqual({});
+    expect(parseMeMap(JSON.stringify([A]))).toEqual({});
+  });
+
+  it("값이 글자가 아니거나 빈 칸이면 그 칸은 버린다", () => {
+    expect(parseMeMap(JSON.stringify({ e1: 3, e2: "", e3: A }))).toEqual({ e3: A });
+  });
+});
+
+describe("withMe", () => {
+  it("한 그룹만 바꾸고 다른 그룹은 그대로 둔다", () => {
+    expect(withMe({ e1: A }, "e2", B)).toEqual({ e1: A, e2: B });
+    expect(withMe({ e1: A, e2: B }, "e1", null)).toEqual({ e2: B });
+  });
+
+  it("입력을 바꾸지 않는다", () => {
+    const before = { e1: A };
+    withMe(before, "e1", B);
+    expect(before).toEqual({ e1: A });
   });
 });

@@ -40,9 +40,9 @@ export function OverallReport({ data }: { data: OverallReportData }) {
     <Document title="모두의 강점 리포트" author="강점 발굴" language="ko">
       <Page size="A4" style={s.page}>
         {/* 쪽마다 고정. 본문보다 앞에 둬야 모든 쪽에 그려진다 */}
-        <Footer label="모두의 강점 · 강점 발굴" />
-        {data.mode === "demo" && <DemoNote />}
-        <Text style={s.brand}>강점 발굴 · {todayLabel()}</Text>
+        <Footer label={`모두의 강점 · ${data.event.title}`} />
+        {data.event.isSample && <DemoNote />}
+        <Text style={s.brand}>{data.event.title} · {todayLabel()}</Text>
         <Text style={s.title}>모두의 강점</Text>
         <Text style={s.subtitle}>
           하나님께서 우리 한 사람 한 사람에게 주신 강점을 함께 발견했어요.

@@ -112,6 +112,42 @@ export function parseDrafts(raw: string | null): Drafts {
   }
 }
 
+/** 그룹 id → '내 이름' 으로 골라둔 사람 id */
+export type MeMap = Record<string, string>;
+
+/** 저장된 '내 이름' 들을 읽는다. 모양이 틀린 칸은 버린다 */
+export function parseMeMap(raw: string | null): MeMap {
+  if (raw === null) {
+    return {};
+  }
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      return {};
+    }
+    const out: MeMap = {};
+    for (const [eventId, personId] of Object.entries(parsed)) {
+      if (typeof personId === "string" && personId !== "") {
+        out[eventId] = personId;
+      }
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+/** 한 그룹의 '내 이름' 을 바꾼다. null 이면 그 그룹 칸을 지운다. 입력을 바꾸지 않는다 */
+export function withMe(map: MeMap, eventId: string, personId: string | null): MeMap {
+  const next = { ...map };
+  if (personId === null) {
+    delete next[eventId];
+  } else {
+    next[eventId] = personId;
+  }
+  return next;
+}
+
 /** 한 칸을 바꾼다. 빈 글이면 그 칸을 지운다. 입력을 바꾸지 않는다 */
 export function withDraft(drafts: Drafts, code: string, text: string): Drafts {
   const next = { ...drafts };
@@ -250,26 +286,30 @@ export function saveMyGroup(group: string): void {
 }
 
 /**
- * 내 이름으로 골라둔 사람.
+ * 내 이름으로 골라둔 사람. 그룹마다 따로 둔다.
  *
  * 홈에서 '내 강점' 을 바로 열고, 내 결과 화면에서 '내가 남긴 강점' 을 보여주기 위한
  * 책갈피다. 서버로 보내지 않으므로 누가 누구인지는 이 기기만 안다.
  * 로그인이 없어서 누구나 아무 이름이나 고를 수 있다 — 그래서 이 값으로
  * 서버에서 무언가를 꺼내 오면 안 된다. 이 기기에 있는 것만 보여준다.
+ *
+ * 스냅숏은 저장된 글 그대로 돌려준다. 문자열이라 내용이 같으면 같은 값으로 비교된다.
+ * 그룹 칸을 꺼내는 일은 훅(useMe)이 한다.
  */
-export function getMe(): string | null {
+export function getMeRaw(): string | null {
   return readRaw(STORAGE_KEYS.me);
 }
 
-export function getMeOnServer(): null {
+export function getMeRawOnServer(): null {
   return null;
 }
 
-export function saveMe(personId: string | null): void {
-  if (personId === null) {
+export function saveMe(eventId: string, personId: string | null): void {
+  const next = withMe(parseMeMap(readRaw(STORAGE_KEYS.me)), eventId, personId);
+  if (Object.keys(next).length === 0) {
     removeRaw(STORAGE_KEYS.me);
   } else {
-    writeRaw(STORAGE_KEYS.me, personId);
+    writeRaw(STORAGE_KEYS.me, JSON.stringify(next));
   }
   notify();
 }

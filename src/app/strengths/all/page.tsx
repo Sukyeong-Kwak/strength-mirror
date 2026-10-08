@@ -3,7 +3,12 @@ import Link from "next/link";
 
 import { buttonClass } from "@/components/Button";
 import { StrengthBody } from "@/features/strengths/StrengthBody";
+import { readFromSlug, strengthsHref } from "@/lib/eventSlug";
 import { STRENGTHS_BY_VIRTUE } from "@/lib/strengths";
+
+type AllStrengthsPageProps = {
+  searchParams: Promise<{ from?: string | string[] }>;
+};
 
 export const metadata: Metadata = {
   title: "전부 이어서 읽기 · 강점 발굴",
@@ -18,10 +23,13 @@ export const metadata: Metadata = {
  *
  * 설명 본문은 시트·상세와 같은 컴포넌트를 쓴다. 두 벌로 두면 문구가 갈라진다.
  */
-export default function AllStrengthsPage() {
+export default async function AllStrengthsPage({ searchParams }: AllStrengthsPageProps) {
+  // 목차로 돌아가도 어느 그룹에서 왔는지 이어 간다
+  const from = readFromSlug((await searchParams).from);
+
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-6">
-      <Link href="/strengths" className={buttonClass("secondary", false, "sm")}>
+      <Link href={strengthsHref(from)} className={buttonClass("secondary", false, "sm")}>
         24가지 강점 목차
       </Link>
 

@@ -2,92 +2,80 @@ import Link from "next/link";
 
 import { buttonClass } from "@/components/Button";
 import { AdminShell } from "@/features/admin/AdminShell";
-import { DemoModePanel } from "@/features/admin/DemoModePanel";
-import { ReceiptStatusTable } from "@/features/admin/ReceiptStatusTable";
+import { EventCreatePanel } from "@/features/admin/EventCreatePanel";
 import { RecentActivity } from "@/features/admin/RecentActivity";
+import { ShareButton } from "@/features/insights/ShareButton";
 import {
   getAdminDisplayNames,
-  getReceiptTotals,
+  getEventPeopleCounts,
   getRecentActivity,
   requireAdmin,
 } from "@/lib/auth/dal";
-import { getAppMode, inMode } from "@/lib/data/appState";
-import { sortGroupNames } from "@/lib/groups";
+import { listEvents } from "@/lib/data/events";
+import { adminEventHref, eventHref } from "@/lib/eventSlug";
 
+/**
+ * 관리자 홈 — 그룹 목록.
+ *
+ * 그룹마다 참여 주소가 따로 있다. 여기서 그룹을 고르면 그 그룹의 현황 · 명단으로 들어간다.
+ * 링크는 여기서 바로 보낼 수 있게 둔다. 진행자가 가장 자주 찾는 것이 그 링크다.
+ */
 export default async function AdminHomePage() {
   // 권한 확인을 먼저 끝낸다. 조회와 나란히 두면 미인가일 때
   // 조회 쪽도 각자 거부되어 처리되지 않은 거부가 남는다.
   // 확인 결과는 cache() 에 담기므로 아래 조회들은 다시 확인하지 않는다
   const session = await requireAdmin();
 
-  const [everyone, entries, labels, mode] = await Promise.all([
-    getReceiptTotals(),
+  const [events, counts, entries, labels] = await Promise.all([
+    listEvents(),
+    getEventPeopleCounts(),
     getRecentActivity(),
     getAdminDisplayNames(),
-    getAppMode(),
   ]);
-
-  // 현황은 지금 참여자 화면에 보이는 쪽만 센다. 예시와 실제를 섞으면 숫자가 뜻을 잃는다
-  const allPeople = everyone.filter((row) => inMode(row.isDemo, mode));
-  const demoCount = everyone.filter((row) => row.isDemo && !row.hidden).length;
-  const liveCount = everyone.filter((row) => !row.isDemo && !row.hidden).length;
-
-  // 숨긴 사람은 현황에서 뺀다.
-  // DB 의 집계 뷰도 숨긴 사람을 빼고 세므로, 여기서 넣으면
-  // 현황과 집계가 서로 다른 말을 하게 된다.
-  // 숨긴 사람을 보고 되돌리는 것은 /admin/people 에서 한다
-  const totals = allPeople.filter((row) => !row.hidden);
-  const hiddenCount = allPeople.length - totals.length;
-
-  const groupCounts = new Map<string, number>();
-  for (const row of totals) {
-    groupCounts.set(row.groupName, (groupCounts.get(row.groupName) ?? 0) + 1);
-  }
 
   return (
     <AdminShell session={session} title="관리자">
-      <DemoModePanel mode={mode} demoCount={demoCount} liveCount={liveCount} />
+      <section className="mt-6">
+        <h2 className="text-sm text-muted">그룹</h2>
+        <ul className="mt-3 flex flex-col gap-3">
+          {events.map((event) => (
+            <li key={event.id} className="rounded-base border border-line bg-surface p-4">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <Link href={adminEventHref(event.slug)} className="font-display text-lg">
+                  {event.title}
+                  {event.isSample && <span className="ml-2 text-sm text-warn">예시</span>}
+                </Link>
+                <span className="num text-sm text-muted">{counts.get(event.id) ?? 0}명</span>
+              </div>
+              <p className="num mt-1 text-sm text-muted">{eventHref(event.slug)}</p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <Link
+                  href={adminEventHref(event.slug)}
+                  className={buttonClass("primary", false, "sm")}
+                >
+                  관리
+                </Link>
+                <ShareButton
+                  title={event.title}
+                  path={eventHref(event.slug)}
+                  label="참여 링크 보내기"
+                  size="sm"
+                />
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
 
-      <nav className="mt-4 flex flex-col gap-2">
-        <Link href="/admin/people/import" className={buttonClass("secondary", true)}>
-          명단 등록
-        </Link>
-        <Link href="/admin/people" className={buttonClass("secondary", true)}>
-          명단 관리
-        </Link>
+      <div className="mt-4">
+        <EventCreatePanel />
+      </div>
+
+      <nav className="mt-6">
         <Link href="/admin/settings" className={buttonClass("secondary", true)}>
           관리자 관리
         </Link>
-        <Link href="/results" className={buttonClass("secondary", true)}>
-          집계 보기
-        </Link>
-        <a href="/results/report" download className={buttonClass("secondary", true)}>
-          전체 결과 PDF 받기
-        </a>
       </nav>
-
-      <section className="mt-6 rounded-base border border-line bg-surface p-4">
-        <h2 className="text-sm text-muted">
-          {mode === "demo" ? "예시 인원" : "등록 인원"}
-        </h2>
-        <p className="num mt-1 text-base">
-          {totals.length}명
-          {hiddenCount > 0 && (
-            <span className="text-muted"> · 숨김 {hiddenCount}명</span>
-          )}
-        </p>
-        {groupCounts.size > 0 && (
-          <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
-            {sortGroupNames([...groupCounts.keys()]).map((group) => (
-              <li key={group} className="num">
-                {group} {groupCounts.get(group) ?? 0}명
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <ReceiptStatusTable totals={totals} registrarLabels={labels} />
 
       <RecentActivity entries={entries} labels={labels} />
     </AdminShell>

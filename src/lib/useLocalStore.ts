@@ -1,14 +1,15 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 
 import {
-  getMe,
-  getMeOnServer,
+  getMeRaw,
+  getMeRawOnServer,
   getMyGroup,
   getMyGroupOnServer,
   getSubmissions,
   getSubmissionsOnServer,
+  parseMeMap,
   subscribeStorage,
 } from "./submitted";
 
@@ -35,6 +36,8 @@ export function useSavedGroup(): string | null {
 }
 
 
-export function useMe(): string | null {
-  return useSyncExternalStore(subscribeStorage, getMe, getMeOnServer);
+/** 이 그룹에서 '내 이름' 으로 골라둔 사람 id */
+export function useMe(eventId: string): string | null {
+  const raw = useSyncExternalStore(subscribeStorage, getMeRaw, getMeRawOnServer);
+  return useMemo(() => parseMeMap(raw)[eventId] ?? null, [raw, eventId]);
 }

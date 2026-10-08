@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 
 import { buttonClass } from "@/components/Button";
 import { ExploreCards } from "@/features/home/ExploreCards";
@@ -8,17 +9,20 @@ import { HiddenStrengths } from "@/features/insights/HiddenStrengths";
 import { InsightSection, SectionNav, type SectionLink } from "@/features/insights/SectionNav";
 import { ResultChart, ViewToggle } from "@/features/results/ResultChart";
 import { UNASSIGNED_GROUP_LABEL } from "@/lib/constants";
+import { getEventBySlug } from "@/lib/data/events";
 import { listPeople } from "@/lib/data/people";
 import {
   getAllGroupStrengthRatios,
   getGroupStrengthRatio,
   getOverallStrengthRatio,
 } from "@/lib/data/results";
+import { eventHref } from "@/lib/eventSlug";
 import { collectGroupNames } from "@/lib/groups";
 import { groupProfiles, hiddenStrengths } from "@/lib/insights";
 import { pickChartView, type ChartView } from "@/types/domain";
 
 type ResultsPageProps = {
+  params: Promise<{ slug: string }>;
   searchParams: Promise<{ view?: string; group?: string }>;
 };
 
@@ -30,7 +34,7 @@ export const metadata: Metadata = {
 const ALL_GROUPS = "전체";
 
 /**
- * 전체 통계 (13단계).
+ * 그룹 전체 통계 (13단계). 다른 그룹의 강점은 섞지 않는다.
  *
  * 개인 결과와 같은 차트를 쓰고, 무엇을 집계했는지만 다르다.
  * 언제든 열린다. 아직 받은 강점이 없으면 차트가 빈 상태를 보여준다.
@@ -39,11 +43,18 @@ const ALL_GROUPS = "전체";
  * group_name 이 null 이라 조별 뷰가 묶지 않는다. 목록에서 빼서
  * 눌렀는데 빈 화면이 나오는 일이 없게 한다.
  */
-export default async function ResultsPage({ searchParams }: ResultsPageProps) {
-  const { view: rawView, group: rawGroup } = await searchParams;
+export default async function ResultsPage({ params, searchParams }: ResultsPageProps) {
+  const [{ slug }, { view: rawView, group: rawGroup }] = await Promise.all([
+    params,
+    searchParams,
+  ]);
   const view: ChartView = pickChartView(rawView);
 
-  const people = await listPeople();
+  const event = await getEventBySlug(slug);
+  if (event === null) {
+    notFound();
+  }
+  const people = await listPeople(event.id);
   const groups = collectGroupNames(people).filter(
     (name) => name !== UNASSIGNED_GROUP_LABEL,
   );
@@ -54,9 +65,9 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
 
   const isAll = group === ALL_GROUPS;
   const [overall, groupRows, byGroup] = await Promise.all([
-    getOverallStrengthRatio(),
-    isAll ? Promise.resolve(null) : getGroupStrengthRatio(group),
-    isAll && groups.length > 1 ? getAllGroupStrengthRatios() : Promise.resolve(null),
+    getOverallStrengthRatio(event.id),
+    isAll ? Promise.resolve(null) : getGroupStrengthRatio(event.id, group),
+    isAll && groups.length > 1 ? getAllGroupStrengthRatios(event.id) : Promise.resolve(null),
   ]);
   const strengthRows = groupRows ?? overall;
 
@@ -78,30 +89,31 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
     { id: "more", label: "나에 대해 더 보기" },
   ];
 
+  const resultsHref = eventHref(event.slug, "/results");
   function hrefFor(nextView: ChartView, nextGroup: string): string {
     const query = new URLSearchParams({ view: nextView });
     if (nextGroup !== ALL_GROUPS) {
       query.set("group", nextGroup);
     }
-    return `/results?${query.toString()}`;
+    return `${resultsHref}?${query.toString()}`;
   }
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-6">
-      <Link href="/" className={buttonClass("secondary", false, "sm")}>
+      <Link href={eventHref(event.slug)} className={buttonClass("secondary", false, "sm")}>
         명단으로
       </Link>
 
       <h1 className="mt-4 text-2xl">모두의 강점</h1>
       <p className="mt-1 text-sm text-muted">
         {group === ALL_GROUPS
-          ? "우리에게 주신 강점"
-          : `${group}에 주신 강점`}
+          ? `${event.title} · 우리에게 주신 강점`
+          : `${event.title} · ${group}에 주신 강점`}
       </p>
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
         {/* 보기 전환(히트맵 · 순위)과 조 고르기가 검은 버튼이다. 곁길인 PDF 까지 검으면 위계가 사라진다 */}
-        <a href="/results/report" download className={buttonClass("secondary", false, "md")}>
+        <a href={eventHref(event.slug, "/results/report")} download className={buttonClass("secondary", false, "md")}>
           전체 결과 PDF로 받기
         </a>
         <p className="text-sm text-muted">조마다의 결, 한 사람 한 사람에게 주신 강점까지 담겨요</p>
@@ -165,7 +177,7 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
       )}
 
       <InsightSection id="more" title="나에 대해 더 보기">
-        <ExploreCards people={people} omit="results" showHeading={false} />
+        <ExploreCards event={event} people={people} omit="results" showHeading={false} />
       </InsightSection>
     </main>
   );

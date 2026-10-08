@@ -14,15 +14,15 @@ import { Button, Chip, buttonClass } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { PersonForm } from "@/features/admin/PersonForm";
 import { UNASSIGNED_GROUP_LABEL } from "@/lib/constants";
+import { adminEventHref } from "@/lib/eventSlug";
 import { sortGroupNames } from "@/lib/groups";
 import { josa } from "@/lib/korean";
-import type { AppMode } from "@/lib/data/appState";
-import type { PersonTotals } from "@/types/domain";
+import type { EventInfo, PersonTotals } from "@/types/domain";
 
 type PeopleManagerProps = {
+  /** 이 명단의 그룹. 등록도 이 그룹으로 들어간다 */
+  event: Pick<EventInfo, "id" | "slug" | "isSample">;
   people: readonly PersonTotals[];
-  /** 지금 참여자 화면. 목록과 등록이 이쪽을 따른다 */
-  mode: AppMode;
 };
 
 const ALL_GROUPS = "전체";
@@ -31,7 +31,7 @@ const FAILED_NOTICE = "처리하지 못했어요. 잠시 뒤 다시 눌러주세
 /** 지우기 전에 한 번 더 묻는 대상 */
 type Confirming = { personId: string; name: string };
 
-export function PeopleManager({ people, mode }: PeopleManagerProps) {
+export function PeopleManager({ event, people }: PeopleManagerProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [group, setGroup] = useState(ALL_GROUPS);
@@ -66,7 +66,7 @@ export function PeopleManager({ people, mode }: PeopleManagerProps) {
     setNotice(null);
     startTransition(async () => {
       try {
-        const result = await addPerson(value);
+        const result = await addPerson({ eventId: event.id, ...value });
         if (!result.ok) {
           setError(result.error);
           return;
@@ -162,7 +162,7 @@ export function PeopleManager({ people, mode }: PeopleManagerProps) {
   const addSection = (
     <section className="rounded-base border border-line bg-surface p-4">
       <h2 className="text-sm text-muted">
-        {mode === "demo" ? "예시에 한 명 바로 등록" : "한 명 바로 등록"}
+        {event.isSample ? "예시에 한 명 바로 등록" : "한 명 바로 등록"}
       </h2>
       <div className="mt-3">
         <PersonForm
@@ -196,12 +196,13 @@ export function PeopleManager({ people, mode }: PeopleManagerProps) {
     </>
   );
 
-  const modeNotice = mode === "demo" && (
+  const modeNotice = event.isSample && (
     <p className="rounded-base border border-line bg-warn-surface px-4 py-3 text-sm text-warn">
-      지금은 예시 화면이라 예시 인물만 보여요. 여기서 등록하면 예시에 들어가요. 실제 명단은
-      관리자 홈에서 실제 참여로 바꾸면 보여요.
+      예시 그룹이에요. 여기서 등록하면 예시에 들어가요. 실제 명단은 그 그룹의 관리 화면에서
+      등록해주세요.
     </p>
   );
+  const importHref = adminEventHref(event.slug, "/people/import");
 
   if (people.length === 0) {
     return (
@@ -212,7 +213,7 @@ export function PeopleManager({ people, mode }: PeopleManagerProps) {
         <EmptyState
           title="아직 등록된 사람이 없어요. 여러 명이면 붙여넣어 한 번에 등록할 수 있어요"
           action={
-            <Link href="/admin/people/import" className={buttonClass("secondary", false, "md")}>
+            <Link href={importHref} className={buttonClass("secondary", false, "md")}>
               붙여넣어 한꺼번에 등록
             </Link>
           }
@@ -228,7 +229,7 @@ export function PeopleManager({ people, mode }: PeopleManagerProps) {
           {people.length}명
           {hiddenCount > 0 ? ` · 숨김 ${hiddenCount}명` : ""}
         </p>
-        <Link href="/admin/people/import" className={buttonClass("secondary", false, "sm")}>
+        <Link href={importHref} className={buttonClass("secondary", false, "sm")}>
           붙여넣어 한꺼번에 등록
         </Link>
       </div>

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { getAdminSession, writeAuditLog } from "@/lib/auth/admin";
-import { getAppMode } from "@/lib/data/appState";
+import { getEventById } from "@/lib/data/events";
 import { readPeopleRows } from "@/lib/data/people";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { ActionResult } from "@/types/domain";
@@ -27,6 +27,8 @@ const PersonInput = z.object({
 });
 
 const ImportInput = z.object({
+  /** 등록할 그룹 */
+  eventId: z.uuid(),
   people: z.array(PersonInput).min(1).max(MAX_IMPORT_ROWS),
 });
 
@@ -67,28 +69,28 @@ export async function importPeople(input: unknown): Promise<ActionResult<ImportR
   }
 
   const supabase = await createSupabaseServerClient();
-  // 지금이 예시 모드면 예시 인물로 들어간다. 중복도 같은 쪽 안에서만 본다
-  const isDemo = (await getAppMode()) === "demo";
+  const { eventId } = parsed.data;
 
+  // 중복은 이 그룹 안에서만 본다. 다른 그룹의 같은 이름은 다른 사람이다
   let existing: Awaited<ReturnType<typeof readPeopleRows>>;
+  let event: Awaited<ReturnType<typeof getEventById>>;
   try {
-    existing = await readPeopleRows();
+    [existing, event] = await Promise.all([readPeopleRows(eventId), getEventById(eventId)]);
   } catch {
     return { ok: false, error: "기존 명단을 확인하지 못했어요. 다시 눌러주세요" };
   }
+  if (event === null) {
+    return { ok: false, error: "그룹을 찾지 못했어요. 새로고침해주세요" };
+  }
 
-  const known = new Set(
-    existing
-      .filter((row) => (row.is_demo ?? false) === isDemo)
-      .map((row) => dedupeKey(row.name, row.group_name)),
-  );
+  const known = new Set(existing.map((row) => dedupeKey(row.name, row.group_name)));
 
   // 붙여넣은 글 안의 중복도 여기서 한 번 더 접는다
   const rows: Array<{
+    event_id: string;
     name: string;
     group_name: string | null;
     created_by: string;
-    is_demo?: true;
   }> = [];
 
   for (const person of parsed.data.people) {
@@ -98,12 +100,11 @@ export async function importPeople(input: unknown): Promise<ActionResult<ImportR
     }
     known.add(key);
     rows.push({
+      event_id: eventId,
       name: person.name,
       group_name: person.groupName,
       // 정책이 본인 이메일만 허용한다
       created_by: admin.email,
-      // 예시일 때만 싣는다. 스키마 재실행 전 DB 에는 그 칸이 없다
-      ...(isDemo ? { is_demo: true as const } : {}),
     });
   }
 
@@ -115,7 +116,7 @@ export async function importPeople(input: unknown): Promise<ActionResult<ImportR
 
   const { data: inserted, error } = await supabase
     .from("people")
-    .insert(rows as never)
+    .insert(rows)
     .select("id");
 
   if (error) {
@@ -128,11 +129,13 @@ export async function importPeople(input: unknown): Promise<ActionResult<ImportR
     return { ok: false, error: "등록되지 않았어요. 다시 로그인한 뒤 시도해주세요" };
   }
 
-  await writeAuditLog(supabase, admin.email, "import_people", { count: added, demo: isDemo });
+  await writeAuditLog(supabase, admin.email, "import_people", {
+    count: added,
+    event: event.title,
+  });
 
-  revalidatePath("/admin");
-  revalidatePath("/admin/people/import");
-  revalidatePath("/");
+  // 관리 화면과 그 그룹의 참여 화면이 모두 바뀐다
+  revalidatePath("/", "layout");
 
   return { ok: true, data: { added, skipped } };
 }

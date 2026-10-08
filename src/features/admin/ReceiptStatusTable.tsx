@@ -13,6 +13,8 @@ type ReceiptStatusTableProps = {
   totals: readonly PersonTotals[];
   /** 이메일 → 표시 이름. 누가 등록했는지 보여주기 위한 것 */
   registrarLabels: ReadonlyMap<string, string>;
+  /** 명단이 비었을 때 보내는 등록 화면 */
+  importHref: string;
 };
 
 const ALL_GROUPS = "전체";
@@ -26,6 +28,7 @@ const ALL_GROUPS = "전체";
 export function ReceiptStatusTable({
   totals,
   registrarLabels,
+  importHref,
 }: ReceiptStatusTableProps) {
   const [group, setGroup] = useState<string>(ALL_GROUPS);
   const [query, setQuery] = useState("");
@@ -85,7 +88,7 @@ export function ReceiptStatusTable({
             }
             action={
               filtered ? undefined : (
-                <Link href="/admin/people/import" className={buttonClass("primary", false, "lg")}>
+                <Link href={importHref} className={buttonClass("primary", false, "lg")}>
                   명단 등록하러 가기
                 </Link>
               )

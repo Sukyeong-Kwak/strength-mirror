@@ -9,6 +9,8 @@ type AdminShellProps = {
   title: string;
   /** 관리자 홈이 아닐 때 돌아갈 링크를 둔다 */
   backHref?: string;
+  /** 돌아갈 곳의 이름. 그룹 안의 화면은 그룹 관리로 돌아간다 */
+  backLabel?: string;
   children: React.ReactNode;
 };
 
@@ -16,6 +18,7 @@ export function AdminShell({
   session,
   title,
   backHref,
+  backLabel = "관리자 홈으로",
   children,
 }: AdminShellProps) {
   return (
@@ -33,7 +36,7 @@ export function AdminShell({
 
       {backHref !== undefined && (
         <Link href={backHref} className={`mt-4 ${buttonClass("secondary", false, "sm")}`}>
-          관리자 홈으로
+          {backLabel}
         </Link>
       )}
 

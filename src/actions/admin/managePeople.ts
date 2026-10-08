@@ -5,7 +5,6 @@ import { z } from "zod";
 
 import { getAdminSession, writeAuditLog } from "@/lib/auth/admin";
 import { UNASSIGNED_GROUP_LABEL } from "@/lib/constants";
-import { getAppMode } from "@/lib/data/appState";
 import { readPeopleRows } from "@/lib/data/people";
 import { josa } from "@/lib/korean";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -40,6 +39,8 @@ const GroupField = z
   );
 
 const AddInput = z.object({
+  /** 등록할 그룹 */
+  eventId: z.uuid(),
   name: NameField,
   groupName: GroupField,
 });
@@ -65,10 +66,9 @@ async function adminOrError() {
   return { ok: true as const, admin: session };
 }
 
+/** 관리 화면과 그 그룹의 참여 화면이 모두 바뀐다 */
 function revalidateAll() {
-  revalidatePath("/admin");
-  revalidatePath("/admin/people");
-  revalidatePath("/");
+  revalidatePath("/", "layout");
 }
 
 /**
@@ -77,8 +77,7 @@ function revalidateAll() {
  * 붙여넣기 등록과 같은 규칙으로, 같은 조에 같은 이름이 있으면 받지 않는다.
  * 동명이인이라면 조를 달리 하거나 이름에 구분을 붙여 등록한다.
  *
- * 지금이 예시 모드면 예시 인물로, 실제 모드면 실제 인물로 들어간다.
- * 중복도 같은 쪽 안에서만 본다. 예시의 '김하늘' 이 실제 '김하늘' 을 막으면 안 된다.
+ * 중복은 같은 그룹 안에서만 본다. 다른 그룹의 '김하늘' 은 다른 사람이다.
  */
 export async function addPerson(
   input: unknown,
@@ -93,22 +92,18 @@ export async function addPerson(
     return { ok: false, error: "이름은 1~40자, 조 이름은 40자까지 쓸 수 있어요" };
   }
 
-  const { name, groupName } = parsed.data;
+  const { eventId, name, groupName } = parsed.data;
   const supabase = await createSupabaseServerClient();
-  const isDemo = (await getAppMode()) === "demo";
 
   let existing: Awaited<ReturnType<typeof readPeopleRows>>;
   try {
-    existing = await readPeopleRows();
+    existing = await readPeopleRows(eventId);
   } catch {
     return { ok: false, error: "기존 명단을 확인하지 못했어요. 다시 눌러주세요" };
   }
 
   const key = dedupeKey(name, groupName);
-  const clash = existing.some(
-    (row) =>
-      (row.is_demo ?? false) === isDemo && dedupeKey(row.name, row.group_name) === key,
-  );
+  const clash = existing.some((row) => dedupeKey(row.name, row.group_name) === key);
   if (clash) {
     return {
       ok: false,
@@ -118,13 +113,12 @@ export async function addPerson(
 
   const { data: inserted, error } = await supabase
     .from("people")
-    // is_demo 는 예시일 때만 싣는다. 스키마 재실행 전 DB 에는 그 칸이 없다
     .insert({
+      event_id: eventId,
       name,
       group_name: groupName,
       created_by: auth.admin.email,
-      ...(isDemo ? { is_demo: true } : {}),
-    } as never)
+    })
     .select("id");
 
   if (error) {
@@ -138,7 +132,6 @@ export async function addPerson(
   await writeAuditLog(supabase, auth.admin.email, "add_person", {
     name,
     group: groupName,
-    demo: isDemo,
   });
   revalidateAll();
 
@@ -167,9 +160,22 @@ export async function updatePerson(
   const { personId, expectedName, name, groupName } = parsed.data;
   const supabase = await createSupabaseServerClient();
 
+  const { data: target, error: targetError } = await supabase
+    .from("people")
+    .select("event_id")
+    .eq("id", personId)
+    .maybeSingle();
+  if (targetError) {
+    return { ok: false, error: "확인하지 못했어요. 다시 눌러주세요" };
+  }
+  if (target === null) {
+    return { ok: false, error: "이미 지워진 사람이에요. 새로고침해주세요" };
+  }
+
+  // 같은 그룹 사람들과만 견준다
   let everyone: Awaited<ReturnType<typeof readPeopleRows>>;
   try {
-    everyone = await readPeopleRows();
+    everyone = await readPeopleRows(target.event_id);
   } catch {
     return { ok: false, error: "확인하지 못했어요. 다시 눌러주세요" };
   }
@@ -189,12 +195,8 @@ export async function updatePerson(
   }
 
   const key = dedupeKey(name, groupName);
-  // 예시는 예시끼리, 실제는 실제끼리만 견준다
   const clash = everyone.some(
-    (row) =>
-      row.id !== personId &&
-      (row.is_demo ?? false) === (person.is_demo ?? false) &&
-      dedupeKey(row.name, row.group_name) === key,
+    (row) => row.id !== personId && dedupeKey(row.name, row.group_name) === key,
   );
   if (clash) {
     return {

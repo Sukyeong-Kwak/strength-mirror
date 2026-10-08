@@ -7,9 +7,11 @@ import { getStrength } from "@/lib/strengths";
 import { useMe, useSubmissions } from "@/lib/useLocalStore";
 
 type SentByMeProps = {
+  /** 이 결과 화면의 그룹. '내 이름' 은 그룹마다 따로 있다 */
+  eventId: string;
   /** 이 결과 화면의 주인 */
   personId: string;
-  /** 지금 화면의 명단. 이름을 붙이고, 예시 화면의 연습 기록을 걸러내는 데 쓴다 */
+  /** 이 그룹의 명단. 이름을 붙이고, 다른 그룹에 남긴 기록을 걸러내는 데 쓴다 */
   people: ReadonlyArray<{ id: string; name: string; groupLabel: string }>;
 };
 
@@ -20,8 +22,8 @@ type SentByMeProps = {
  * 서버에는 누가 남겼는지가 없으므로 서버에 묻지 않는다. 남이 내 이름을 골라도
  * 그 사람 기기에는 내 기록이 없어서 아무것도 보이지 않는다.
  */
-export function SentByMe({ personId, people }: SentByMeProps) {
-  const me = useMe();
+export function SentByMe({ eventId, personId, people }: SentByMeProps) {
+  const me = useMe(eventId);
   const submissions = useSubmissions();
 
   const groups = useMemo(() => {

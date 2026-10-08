@@ -1,16 +1,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
 
 import { getAdminSession } from "@/lib/auth/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { ActionResult } from "@/types/domain";
 
 /**
- * 예시 화면 ↔ 실제 참여 화면.
+ * 예시 그룹의 데이터 채우기 · 지우기.
  *
- * 실제 일은 DB 의 관리자 전용 함수(seed_demo · clear_demo · set_app_mode)가 한다.
+ * 실제 일은 DB 의 관리자 전용 함수(seed_demo · clear_demo)가 한다.
  * 예시 제출을 만들려면 feedbacks 에 직접 넣어야 하는데 그 권한은 소유자에게만 있다.
  * 활동 기록도 함수 안에서 남긴다.
  *
@@ -47,7 +46,7 @@ async function rpcAsAdmin(
     return { ok: false, error: "처리하지 못했어요. 다시 눌러주세요" };
   }
 
-  // 참여자 화면 전체가 바뀐다. 명단 · 결과 · 집계 어디에서든 새로 그려야 한다
+  // 예시 그룹의 명단 · 결과 · 집계가 모두 바뀐다
   revalidatePath("/", "layout");
   return { ok: true, data };
 }
@@ -68,16 +67,4 @@ export async function clearDemo(): Promise<ActionResult<{ count: number }>> {
     return result;
   }
   return { ok: true, data: { count: typeof result.data === "number" ? result.data : 0 } };
-}
-
-const ModeInput = z.enum(["demo", "live"]);
-
-/** 참여자 화면을 예시 또는 실제 참여로 바꾼다 */
-export async function setAppMode(input: unknown): Promise<ActionResult> {
-  const parsed = ModeInput.safeParse(input);
-  if (!parsed.success) {
-    return { ok: false, error: "바꿀 화면을 알 수 없어요. 새로고침해주세요" };
-  }
-  const result = await rpcAsAdmin("set_app_mode", { p_mode: parsed.data });
-  return result.ok ? { ok: true, data: undefined } : result;
 }

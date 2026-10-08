@@ -35,8 +35,11 @@ export const UNASSIGNED_GROUP_LABEL = "미지정";
 export const STORAGE_KEYS = {
   submitted: "via:submitted:v1",
   myGroup: "via:myGroup:v1",
-  /** "내 이름" 으로 골라둔 사람 id. 이 기기에만 있고 서버로 가지 않는다 */
-  me: "via:me:v1",
+  /**
+   * "내 이름" 으로 골라둔 사람 id. 그룹 id → 사람 id. 이 기기에만 있고 서버로 가지 않는다.
+   * 한 사람이 여러 그룹에 있을 수 있어서 그룹마다 따로 둔다 (v1 은 하나뿐이었다)
+   */
+  me: "via:me:v2",
   draftPrefix: "via:draft:",
 } as const;
 

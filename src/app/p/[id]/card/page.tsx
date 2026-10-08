@@ -47,7 +47,7 @@ export default async function StrengthCardPage({ params }: CardPageProps) {
 
   const [rows, overall, reasons] = await Promise.all([
     getPersonStrengthRatio(person.id),
-    getOverallStrengthRatio(),
+    getOverallStrengthRatio(person.eventId),
     getPersonReasons(person.id),
   ]);
 

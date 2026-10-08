@@ -5,7 +5,9 @@ import { notFound } from "next/navigation";
 import { buttonClass } from "@/components/Button";
 import { StrengthBoard } from "@/features/feedback/StrengthBoard";
 import { ReportDownload } from "@/features/insights/ReportDownload";
+import { getEventById } from "@/lib/data/events";
 import { getPerson, listPeople } from "@/lib/data/people";
+import { eventHref } from "@/lib/eventSlug";
 import { toGroupLabel } from "@/lib/groups";
 
 type PersonPageProps = {
@@ -30,14 +32,23 @@ export default async function PersonPage({ params }: PersonPageProps) {
     notFound();
   }
 
-  const [person, people] = await Promise.all([getPerson(id), listPeople()]);
+  const person = await getPerson(id);
   if (person === null) {
     notFound();
   }
+  // '남기는 사람' 은 같은 그룹에서만 고른다
+  const [event, people] = await Promise.all([
+    getEventById(person.eventId),
+    listPeople(person.eventId),
+  ]);
+  if (event === null) {
+    notFound();
+  }
+  const homeHref = eventHref(event.slug);
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-6">
-      <Link href="/" className={buttonClass("secondary", false, "sm")}>
+      <Link href={homeHref} className={buttonClass("secondary", false, "sm")}>
         명단으로
       </Link>
 
@@ -76,7 +87,7 @@ export default async function PersonPage({ params }: PersonPageProps) {
         받을 수 있어요.
       </p>
 
-      <StrengthBoard person={person} people={people} />
+      <StrengthBoard person={person} people={people} homeHref={homeHref} />
     </main>
   );
 }
