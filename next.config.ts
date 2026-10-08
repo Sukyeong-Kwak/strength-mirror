@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   // 배포 묶음에 저절로 들어가지 않으므로 두 경로에 붙여 넣는다
   outputFileTracingIncludes: {
     "/p/[id]/report": ["./src/lib/pdf/fonts/**/*"],
-    "/results/report": ["./src/lib/pdf/fonts/**/*"],
+    "/e/[slug]/results/report": ["./src/lib/pdf/fonts/**/*"],
   },
 };
 
