@@ -949,18 +949,13 @@ begin
 
   for r in
     select * from (values
-      ('김하늘', 'A조', array['kindness','kindness','kindness','gratitude','gratitude','love','humor']),
-      ('이도윤', 'A조', array['creativity','creativity','creativity','curiosity','curiosity','humor','zest']),
-      ('박서연', 'A조', array['leadership','leadership','fairness','fairness','judgment','perseverance','honesty']),
-      ('최민준', 'A조', array['prudence','prudence','self_regulation','self_regulation','humility','perseverance']),
-      ('정유진', 'B조', array['kindness','kindness','social_intelligence','social_intelligence','love','gratitude','teamwork']),
-      ('강지후', 'B조', array['bravery','bravery','bravery','honesty','honesty','zest','leadership']),
-      ('윤수아', 'B조', array['love_of_learning','love_of_learning','curiosity','curiosity','perspective','judgment']),
-      ('장현우', 'B조', array['humor','humor','humor','zest','zest','hope','teamwork']),
-      ('한예린', 'C조', array['gratitude','gratitude','gratitude','hope','hope','appreciation_of_beauty','kindness']),
-      ('오준서', 'C조', array['teamwork','teamwork','teamwork','fairness','kindness','perseverance']),
-      ('서지아', 'C조', array['perspective','perspective','judgment','judgment','humility','humility']),
-      ('임태윤', 'C조', array['creativity','creativity','appreciation_of_beauty','appreciation_of_beauty','curiosity','humor'])
+      ('곽수경', '원띵', array['creativity','creativity','creativity','curiosity','curiosity','love_of_learning','perspective']),
+      ('김수나', '원띵', array['kindness','kindness','kindness','love','love','gratitude','social_intelligence']),
+      ('노은주', '원띵', array['perseverance','perseverance','prudence','prudence','self_regulation','honesty','humility']),
+      ('신선한', '원띵', array['humor','humor','humor','zest','zest','hope','teamwork']),
+      ('조용운', '원띵', array['leadership','leadership','fairness','fairness','judgment','bravery','teamwork']),
+      ('최유라', '원띵', array['appreciation_of_beauty','appreciation_of_beauty','gratitude','gratitude','hope','spirituality','kindness']),
+      ('정승민', '원띵', array['spirituality','spirituality','forgiveness','forgiveness','humility','social_intelligence'])
     ) as t(name, grp, codes)
   loop
     v_index := v_index + 1;
